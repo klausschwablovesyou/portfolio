@@ -237,7 +237,7 @@
   color: var(--on-ink-muted);
 }
 
-/* a soft patch of the page colour behind the hero copy, so the ridgelines never cut the text */
+/* a soft patch of the page colour behind the hero copy, so nothing in the sky sits right behind the text */
 .hero-text {
   position: relative;
 }

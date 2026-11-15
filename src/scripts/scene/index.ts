@@ -10,15 +10,15 @@ import {
   WebGLRenderer,
 } from 'three';
 import { anchorToWorld } from './anchors';
+import { createCosmos } from './cosmos';
 import { createGraph, type GraphLabel } from './graph';
 import { createPost } from './post';
 import { createShuriken } from './shuriken';
-import { createTerrain } from './terrain';
 
 /**
  * One fixed full-window canvas and one renderer, drawing two layers:
  *
- *  1. the ridgeline terrain, with its own camera that scrolling raises and tilts;
+ *  1. the cosmos: deep space with a camera of its own; scrolling moves the star field past it;
  *  2. the anchored objects (stack graph, contact emblem), with a camera that looks straight
  *     ahead, so each object can follow an empty HTML element (data-anchor) and the 3D layout
  *     follows the responsive HTML layout.
@@ -33,12 +33,6 @@ import { createTerrain } from './terrain';
  */
 const INK = new Color('#0F262D');
 const CAMERA_Z = 16;
-const SCROLL_TO_WORLD = 0.02;
-
-const smooth = (v: number) => {
-  const k = Math.min(1, Math.max(0, v));
-  return k * k * (3 - 2 * k);
-};
 
 export function initScene(canvas: HTMLCanvasElement): void {
   let renderer: WebGLRenderer;
@@ -77,6 +71,9 @@ export function initScene(canvas: HTMLCanvasElement): void {
   let tier = post ? (pinnedTier >= 0 ? pinnedTier : 2) : 0;
   const bufferSize = new Vector2();
 
+  /* layer 1: cosmos */
+  const cosmos = createCosmos(small);
+
   function applyTier(): void {
     const cfg = TIERS[tier];
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.ratio));
@@ -85,11 +82,10 @@ export function initScene(canvas: HTMLCanvasElement): void {
       renderer.getDrawingBufferSize(bufferSize);
       post.setSize(bufferSize.x, bufferSize.y);
     }
+    // sizes that the cosmos gives in pixels depend on the pixel ratio of the step
+    cosmos.resize(width / height, height, renderer.getPixelRatio());
   }
   applyTier();
-
-  /* layer 1: terrain */
-  const terrain = createTerrain(small ? 64 : 96, width / height, small ? 14 : 22);
 
   /* layer 2: anchored objects */
   const scene = new Scene();
@@ -196,12 +192,6 @@ export function initScene(canvas: HTMLCanvasElement): void {
     return Math.min(1, Math.max(0, (height * 0.4 - centre) / (height * 0.55)));
   }
 
-  /** 0 at the top and at the very end of the page (low camera), 1 in between (high camera). */
-  function riseAmount(y: number): number {
-    const max = Math.max(1, root.scrollHeight - height);
-    return smooth(y / (height * 1.1)) * (1 - smooth((y - (max - height * 1.5)) / (height * 1.1)));
-  }
-
   // the camera follows the scroll position with a little inertia
   let scrollEase = window.scrollY;
   // frame-time watch for stepping the quality down
@@ -242,11 +232,11 @@ export function initScene(canvas: HTMLCanvasElement): void {
     const p = still ? { x: 0, y: 0 } : pointer;
 
     scrollEase = still ? window.scrollY : scrollEase + (window.scrollY - scrollEase) * Math.min(1, dt * 6);
-    const rise = riseAmount(scrollEase);
     // opening shot: 0 → 1 over a few seconds, easing out
     const introT = still ? 1 : Math.min(1, time / 3.6);
     const intro = 1 - Math.pow(1 - introT, 3);
-    terrain.update({ scroll: scrollEase * SCROLL_TO_WORLD, time, rise, intro, pointer: p });
+    const filmed = !!post && TIERS[tier].post;
+    cosmos.update({ screens: scrollEase / height, time, intro, pointer: p, direct: !filmed });
 
     // slight camera drift with the pointer; anchors include the camera offset, so the
     // anchored objects stay on their elements
@@ -281,10 +271,10 @@ export function initScene(canvas: HTMLCanvasElement): void {
       }
     }
 
-    if (post && TIERS[tier].post) {
+    if (post && filmed) {
       post.render(
         {
-          terrain: () => renderer.render(terrain.scene, terrain.camera),
+          backdrop: () => renderer.render(cosmos.scene, cosmos.camera),
           overlay: () => renderer.render(scene, camera),
         },
         { time: still ? 0 : time },
@@ -294,7 +284,7 @@ export function initScene(canvas: HTMLCanvasElement): void {
       renderer.setRenderTarget(null);
       renderer.setClearColor(INK, 1);
       renderer.clear();
-      renderer.render(terrain.scene, terrain.camera);
+      renderer.render(cosmos.scene, cosmos.camera);
       renderer.clearDepth();
       renderer.render(scene, camera);
     }
@@ -326,7 +316,6 @@ export function initScene(canvas: HTMLCanvasElement): void {
     applyTier();
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    terrain.resize(width / height);
     measureHeadRoom();
     wake();
   });

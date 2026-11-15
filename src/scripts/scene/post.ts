@@ -17,7 +17,7 @@ import {
 /**
  * The film look. Instead of drawing straight to the screen, a frame goes through:
  *
- *  1. terrain → float target;
+ *  1. the backdrop → float target;
  *  2. the anchored objects are drawn on top;
  *  3. bloom: bright parts are blurred down and up a small pyramid and added back,
  *     plus a wide horizontal streak, like an anamorphic lens flare;
@@ -36,7 +36,7 @@ export interface Post {
   check(): boolean;
   /** size of the drawing buffer in pixels */
   setSize(width: number, height: number): void;
-  render(draw: { terrain(): void; overlay(): void }, state: PostState, clearColor: Color): void;
+  render(draw: { backdrop(): void; overlay(): void }, state: PostState, clearColor: Color): void;
   dispose(): void;
 }
 
@@ -273,7 +273,7 @@ export function createPost(renderer: WebGLRenderer): Post | null {
       renderer.setRenderTarget(rtComp);
       renderer.setClearColor(clearColor, 1); // set per target: it is converted to the target's colour space
       renderer.clear();
-      drawScene.terrain();
+      drawScene.backdrop();
       renderer.clearDepth();
       drawScene.overlay();
 

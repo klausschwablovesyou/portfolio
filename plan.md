@@ -372,3 +372,38 @@ Things to know when changing it further:
 - The terrain lines and its hiding surface share one vertex buffer and one vertex shader, so they sit on identical heights; the surface is pushed back with `polygonOffset`. Keep them in sync.
 - On narrow anchors the graph is stretched vertically (`stretch` in `index.ts`) so the labels keep apart; dots are counter-scaled to stay round.
 - Verified with headless Chrome (`--enable-unsafe-swiftshader`) at 390, 820 and 1440 px in both languages, with reduced motion and with JavaScript off; `astro check` and `astro build` pass.
+
+### Cosmic background (third revision, 2026-11-15, branch `cosmic-bg`)
+
+The owner did not like the landscape background and asked for a cosmic one instead: 3D, three.js, with movement, geometric shapes welcome, and quiet enough that the foreground stays in front. The first build's "star-like particle background" had been rejected as boring (see the top of this section), so a flat field of dots is not an answer. This one has depth, one landmark and a few bodies that turn.
+
+The change lives on its own branch; `shade-b` still has the terrain. Only the first layer of the scene changed: `terrain.ts` is gone and `src/scripts/scene/cosmos/` took its place. The stack graph, the shuriken, `post.ts` (one callback renamed to `backdrop`), the HTML and the CSS are as they were. The notes above about the terrain (shared vertex buffer, depth of field, dust motes) describe `shade-b`, not this branch.
+
+| Part | What it is | Where |
+|---|---|---|
+| Sky | One triangle over the whole view. Thin gas from domain-warped simplex noise, gathered in a diagonal band like the plane of a galaxy, with darker lanes; plus the faintest stars as dust from a hash grid, sized in CSS pixels. It moves at about 3% of the page speed. | `cosmos/sky.ts` |
+| Stars | Up to 1,800 points at depths 14–170; the number drawn follows the aspect ratio, so a phone is as densely starred as a wide screen. Each star lives in a wrap box that grows with its depth, so the field is endless. Small ones twinkle; about 2% are bright, with a halo and four spikes; about 30% sit in loose clusters, because evenly scattered stars look like noise. | `cosmos/stars.ts` |
+| Planet | The one landmark: a dark sphere with a lit crescent, a graticule that turns with it, ten ring lines (one amber) and two moons on drawn orbits. It is at depth 150, so it rises only about half a screen while the whole page scrolls by. The body is opaque and drawn after the stars, so it covers them. | `cosmos/planet.ts` |
+| Solids | Five bodies of thin glass with drawn edges and a dot on every corner: an icosahedron with its dual inside, a dodecahedron, two tetrahedra as a star, a tesseract that turns through the fourth dimension, and a small amber octahedron. Each tumbles slowly on its own axis; a face glints when it mirrors the light. | `cosmos/solids.ts`, `cosmos/kit.ts` |
+| Shooting star | One thin streak every 7–16 seconds, under a second long, in the upper part of the view. | `cosmos/meteor.ts` |
+| Assembly | Where everything is, how it moves, draw order. | `cosmos/index.ts` |
+
+How it moves:
+
+- The camera never leaves the origin. Where it "is" in the field is one 2D vector, the travel; every part reads it and moves the other way. A body at depth `d` moves at `REF / d` of the page speed (`REF = 9`): the nearest stars at 64%, the solids at 15–26%, the planet at 6%.
+- Without scrolling the camera still floats in a slow, bounded figure (about 3 units either way), the solids tumble, the planet turns, the moons orbit, the stars twinkle and the gas streams. Nothing drifts away from where it was put.
+- Opening shot: the camera comes down 9 units and eases to rest in 3.6 s, so the sky rises into place while the name comes in.
+- With `prefers-reduced-motion` the clock stands still: one still frame, redrawn on scroll and resize, and no shooting stars.
+
+Rules that keep it a background. Keep them when changing it:
+
+- The empty sky is exactly the page ink (`#0F262D`), so the ink-coloured patches behind the hero copy and the nav melt into it. The brightest gas is `#17404A`: any lighter and the muted text (`#8FA9AF`) on it drops under 4.5:1.
+- The text of the page is set to the left, so the planet and the solids keep to the right half and the left margin, in columns (see the table of positions in `cosmos/index.ts`). Two solids share a column only if they never meet in it. On an upright screen there is no free half: only two solids are shown, half out of view on the left edge, and the planet starts below the fold.
+- Stars, lines and glass only add light. In the float pipeline that is linear; straight to the canvas (quality step 0) it would be added to sRGB values and come out far too strong, so every additive shader goes through `emit()` (`cosmos/shared.ts`), which bends it back.
+- three sorts by the draw order of the nearest group first, and every nested group starts that again. `drawOrder()` in `cosmos/shared.ts` gives all the groups of a layer the same number; without it the planet's body does not cover the stars.
+
+Left as it was, for the owner to decide: the ridge-shaped section edges (`Ridge.astro`) are still mountain ridges. They read as peaks under a night sky, but they come from the landscape idea.
+
+Verified in headless Chrome on the real GPU (Apple M1 Pro; `--headless=new --enable-gpu --use-angle=metal`, so no software-rendering flag and no pinned `?fx`) at 390 × 844, 820 × 1180, 1440 × 900, 2560 × 1300 at 2x and 3440 × 1440, in both languages, with `?fx=0`, and with reduced motion; `astro check` and `astro build` pass. At 2560 × 1300 at 2x it ran at 48 fps on quality step 2, against 40 fps for the terrain, and at 60 fps on steps 1 and 0. Safari, iOS, Android and weak GPUs are untested, as before.
+
+Note for the next run: with Astro 7, `astro dev` starts the server in the background and returns at once; `astro dev stop` ends it.

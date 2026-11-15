@@ -10,6 +10,6 @@ export default defineConfig({
   trailingSlash: 'ignore',
   build: { format: 'directory' },
   devToolbar: { enabled: false },
-  // three.js is one ~560 kB chunk (143 kB gzipped), loaded on idle after the text.
+  // three.js is one ~605 kB chunk (152 kB gzipped), loaded on idle after the text.
   vite: { build: { chunkSizeWarningLimit: 700 } },
 });
