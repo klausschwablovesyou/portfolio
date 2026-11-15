@@ -30,9 +30,21 @@ const plotVars = `--t0:${timeline.start};--span:${timeline.end - timeline.start}
               class:list={['track', st.labelSide, { now: st.current }]}
               style={`--from:${st.from};--to:${st.to};--i:${i}`}
             >
-              <span class="bar" aria-hidden="true" />
+              <span class="bar" aria-hidden="true">
+                {st.segments?.map((sg) => (
+                  <span
+                    class="seg"
+                    style={`--l:${((sg.from - st.from) / (st.to - st.from)) * 100}%;--w:${((sg.to - sg.from) / (st.to - st.from)) * 100}%`}
+                  >
+                    <span class="seg-name">{sg.name}</span>
+                  </span>
+                ))}
+              </span>
               <span class="lbl">
                 {st.name} <em>{st.years}</em>
+                {st.segments && (
+                  <span class="sr-only">({st.segments.map((sg) => `${sg.name} ${sg.years}`).join(', ')})</span>
+                )}
               </span>
             </li>
           ))
@@ -45,7 +57,7 @@ const plotVars = `--t0:${timeline.start};--span:${timeline.end - timeline.start}
       <ol class="levels" role="list" style={plotVars}>
         {
           levelSpans.map((l, i) => (
-            <li class:list={{ now: l.current }} style={`--from:${l.from};--to:${l.to};--i:${i + 6}`}>
+            <li class:list={{ now: l.current }} style={`--from:${l.from};--to:${l.to};--i:${i + stacks.length}`}>
               {s.levels[i]}
             </li>
           ))

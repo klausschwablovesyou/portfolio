@@ -1010,6 +1010,64 @@
     right: calc(100% - (var(--from) - var(--t0)) / var(--span) * 100% + 14px);
     flex-direction: row-reverse;
   }
+
+  /* a bar across the whole axis: taller, with its label set inside it */
+  .track.inside .bar {
+    top: 8px;
+    height: 28px;
+  }
+
+  .track.inside .lbl {
+    left: calc((var(--from) - var(--t0)) / var(--span) * 100% + 12px);
+    color: var(--ink);
+  }
+
+  .track.inside .lbl em {
+    color: var(--ink);
+    opacity: 0.7;
+  }
+
+  .track .seg-name {
+    display: block;
+  }
+}
+
+/* eras inside a bar: a notch at each boundary, the name at the right end of its era */
+.seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--l);
+  width: var(--w);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+.seg + .seg {
+  border-left: 2px solid var(--ink);
+}
+
+.seg:nth-child(even) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.seg-name {
+  display: none;
+  padding: 0 8px;
+  font: 500 0.68rem/1 var(--mono);
+  color: var(--ink);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+/* an era too short for its name keeps only its notches */
+@container (max-width: 58px) {
+  .track .seg-name {
+    display: none;
+  }
 }
 
 /* ───────── experience ───────── */

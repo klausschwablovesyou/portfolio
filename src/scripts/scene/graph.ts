@@ -38,12 +38,16 @@ const LANE = 0.82;
 const LANES: { lane: number; z: number; labelLead?: number }[] = [
   { lane: 3, z: -0.55 }, // Java Spring
   { lane: 2, z: 0.5 }, // Angular
+  // React shares a lane with PHP (PHP ends in 2017, React starts in 2018); below the trunk,
+  // so its merge in 2020 does not cross Angular forking off at the same point
+  { lane: -1, z: -0.5 }, // React
   { lane: 1, z: -0.2 }, // TypeScript
   // .NET · C# shares a lane with Flash (they never overlap); its label starts a little later,
   // so the two labels keep apart on a phone
   { lane: -2, z: 0.6, labelLead: 1.45 },
   { lane: -1, z: -0.5 }, // PHP · Symfony
   { lane: -2, z: 0.6 }, // Flash · ActionScript
+  { lane: -3, z: 0.15 }, // SQL: under everything, from 2003 to today
 ];
 
 const AMBER = new Color('#F2B33D');
@@ -290,6 +294,8 @@ export function createGraph(): StackGraph {
     } else {
       node(x1, 0, 0, 0.115, earlierNode);
     }
+    // era boundaries inside the span, as commits on the branch
+    s.segments?.slice(1).forEach((sg) => node(toX(sg.from), y, z, 0.1, trunkNode));
 
     // open branches: the label sits right after the head, like a git ref;
     // merged branches: it starts where the line straightens, below it
@@ -308,8 +314,8 @@ export function createGraph(): StackGraph {
   popIns.push({ obj: trunkLight, x: xNow, scale: 1.1, pulse: 0.6 });
 
   /* blueprint time axis: baseline, a tick and a faint guide line every five years */
-  const top = 3 * LANE + 0.5;
-  const axisY = -2 * LANE - 0.95;
+  const top = Math.max(...LANES.map((l) => l.lane)) * LANE + 0.5;
+  const axisY = Math.min(...LANES.map((l) => l.lane)) * LANE - 0.95;
   const pts: number[] = [-LENGTH / 2, axisY, 0, LENGTH / 2, axisY, 0];
   const guide: number[] = [];
   for (const y of axisYears) {

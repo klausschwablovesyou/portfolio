@@ -13,18 +13,40 @@ export interface StackSpan {
   /** printed span, e.g. "2021–26" */
   years: string;
   current: boolean;
-  /** label side in the 2D chart: before the bar (late starters) or after it (2003 starters) */
-  labelSide: 'before' | 'after';
+  /**
+   * label side in the 2D chart: before the bar (late starters), after it (2003 starters),
+   * or inside it (a bar that spans the whole axis leaves no room on either side)
+   */
+  labelSide: 'before' | 'after' | 'inside';
+  /** eras within the span, marked inside the bar (and as dots on the 3D branch) */
+  segments?: { name: string; from: number; to: number; years: string }[];
 }
 
 /** Newest first, as in cv-onepage.html (.track --from / --to). */
 export const stacks: StackSpan[] = [
   { name: 'Java Spring', from: 2021.75, to: 2026.58, years: '2021–26', current: true, labelSide: 'before' },
   { name: 'Angular', from: 2020.33, to: 2026.58, years: '2020–26', current: true, labelSide: 'before' },
+  { name: 'React', from: 2018, to: 2020.33, years: '2018–20', current: false, labelSide: 'before' },
   { name: 'TypeScript', from: 2017, to: 2026.58, years: '2017–26', current: true, labelSide: 'before' },
   { name: '.NET · C#', from: 2015.25, to: 2021.83, years: '2015–21', current: false, labelSide: 'before' },
   { name: 'PHP · Symfony', from: 2003.67, to: 2017, years: '2003–16', current: false, labelSide: 'after' },
   { name: 'Flash · ActionScript', from: 2003.67, to: 2010.75, years: '2003–10', current: false, labelSide: 'after' },
+  // under every other stack, from MySQL through Oracle PL/SQL and MSSQL to SQLite: drawn last, as the base
+  {
+    name: 'SQL',
+    from: 2003.67,
+    to: 2026.58,
+    years: '2003–26',
+    current: true,
+    labelSide: 'inside',
+    // MySQL with PHP; Oracle PL/SQL at AsystANT; MSSQL / T-SQL from Outlast to ROKSH; SQLite at CareDx
+    segments: [
+      { name: 'MySQL', from: 2003.67, to: 2013.42, years: '2003–13' },
+      { name: 'Oracle', from: 2013.42, to: 2015.25, years: '2013–15' },
+      { name: 'MSSQL', from: 2015.25, to: 2021.75, years: '2015–21' },
+      { name: 'SQLite', from: 2021.75, to: 2026.58, years: '2021–26' },
+    ],
+  },
 ];
 
 /** Seniority band under the chart; labels come from the language file in the same order. */

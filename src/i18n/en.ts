@@ -8,7 +8,7 @@ const en: SiteContent = {
   meta: {
     title: 'Tibor Németh — Full Stack Software Architect',
     description:
-      'CV and portfolio of Tibor Németh, Full Stack Software Architect from Hungary: 23 years of web development, six stacks, most recently architect and team lead at CareDx.',
+      'CV and portfolio of Tibor Németh, Full Stack Software Architect from Hungary: 23 years of web development, eight stacks, most recently architect and team lead at CareDx.',
   },
   a11y: {
     skipLink: 'Skip to content',
@@ -35,7 +35,7 @@ const en: SiteContent = {
       'Hands-on architect who sets the technical direction, leads the team and still ships code — most recently across <strong>three transplant-diagnostics products at CareDx</strong> (Nasdaq: CDNA).',
     ctaPrimary: 'Get in touch',
     ctaSecondary: 'See the experience',
-    towerCaption: 'Six stacks, 2003–2026',
+    towerCaption: 'Eight stacks, 2003–2026',
   },
   stats: {
     heading: 'At a glance',
@@ -50,7 +50,7 @@ const en: SiteContent = {
     kicker: 'About',
     heading: 'Architect who still ships code.',
     paragraph:
-      'Full stack senior developer and architect from Hungary, building for the web since 2003. I started with Flash and PHP and moved through .NET to TypeScript, Angular and Java Spring: six stacks in 23 years. For the last six years I have worked as an architect and team lead, designing the system, leading an international team, reviewing code and mentoring, while still shipping code myself.',
+      'Full stack senior developer and architect from Hungary, building for the web since 2003. I started with Flash and PHP and moved through .NET to TypeScript, React, Angular and Java Spring, with SQL underneath all the way: eight stacks in 23 years. For the last six years I have worked as an architect and team lead, designing the system, leading an international team, reviewing code and mentoring, while still shipping code myself.',
     portraitAlt: 'Portrait of Tibor Németh',
     quote:
       '“I think you’re an expert, because I can’t remember any complex problem you could not solve properly. That’s what I call expert.”',
@@ -70,14 +70,14 @@ const en: SiteContent = {
   },
   stacks: {
     kicker: 'Timeline',
-    heading: 'Six stacks in 23 years',
+    heading: 'Eight stacks in 23 years',
     intro:
-      'From Flash and PHP through .NET to TypeScript, Angular and Java Spring. Each bar is the span between the first and the last role that used the stack.',
+      'From Flash and PHP through .NET to TypeScript, React, Angular and Java Spring, with SQL under all of them. Each bar is the span between the first and the last role that used the stack.',
     legendCurrent: 'current',
     legendEarlier: 'earlier',
     levelsTitle: 'Seniority by job title',
     levels: ['Junior', 'Developer', 'Senior · Lead', 'Architect'],
-    figureLabel: 'Timeline of six technology stacks from 2003 to 2026',
+    figureLabel: 'Timeline of eight technology stacks from 2003 to 2026',
   },
   experience: {
     kicker: 'Experience',

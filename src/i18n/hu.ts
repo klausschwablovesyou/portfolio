@@ -12,7 +12,7 @@ const hu: SiteContent = {
   meta: {
     title: 'Németh Tibor — Full stack szoftverarchitekt',
     description:
-      'Németh Tibor full stack szoftverarchitekt önéletrajza és portfóliója: 23 év webfejlesztés, hat stack, legutóbb architekt és csapatvezető a CareDx-nél.',
+      'Németh Tibor full stack szoftverarchitekt önéletrajza és portfóliója: 23 év webfejlesztés, nyolc stack, legutóbb architekt és csapatvezető a CareDx-nél.',
   },
   a11y: {
     skipLink: 'Ugrás a tartalomhoz',
@@ -39,7 +39,7 @@ const hu: SiteContent = {
       'Gyakorlatias architekt, aki kijelöli a technikai irányt, vezeti a csapatot, és közben maga is kódol – legutóbb a <strong>CareDx három transzplantációs diagnosztikai termékén</strong> (Nasdaq: CDNA).',
     ctaPrimary: 'Kapcsolat',
     ctaSecondary: 'Szakmai tapasztalat',
-    towerCaption: 'Hat stack, 2003–2026',
+    towerCaption: 'Nyolc stack, 2003–2026',
   },
   stats: {
     heading: 'Számokban',
@@ -54,7 +54,7 @@ const hu: SiteContent = {
     kicker: 'Rólam',
     heading: 'Architekt, aki ma is kódol.',
     paragraph:
-      'Full stack senior fejlesztő és architekt vagyok Magyarországról, 2003 óta fejlesztek webre. Flash-sel és PHP-val kezdtem, majd a .NET-en át jutottam el a TypeScripthez, az Angularhoz és a Java Springhez: hat stack 23 év alatt. Az elmúlt hat évben architektként és csapatvezetőként dolgoztam: rendszert terveztem, nemzetközi csapatot vezettem, code review-t végeztem és mentoráltam – miközben magam is folyamatosan kódoltam.',
+      'Full stack senior fejlesztő és architekt vagyok Magyarországról, 2003 óta fejlesztek webre. Flash-sel és PHP-val kezdtem, majd a .NET-en át jutottam el a TypeScripthez, a Reacthez, az Angularhoz és a Java Springhez, mindvégig SQL-lel: nyolc stack 23 év alatt. Az elmúlt hat évben architektként és csapatvezetőként dolgoztam: rendszert terveztem, nemzetközi csapatot vezettem, code review-t végeztem és mentoráltam – miközben magam is folyamatosan kódoltam.',
     portraitAlt: 'Németh Tibor portréja',
     quote:
       '„Szerintem szakértő vagy, mert nem emlékszem olyan összetett problémára, amit ne oldottál volna meg rendesen. Ezt hívom én szakértőnek.”',
@@ -74,14 +74,14 @@ const hu: SiteContent = {
   },
   stacks: {
     kicker: 'Idővonal',
-    heading: 'Hat stack 23 év alatt',
+    heading: 'Nyolc stack 23 év alatt',
     intro:
-      'A Flashtől és a PHP-tól a .NET-en át a TypeScriptig, az Angularig és a Java Springig. Minden sáv az első és az utolsó olyan munkakör közötti időszakot mutatja, amelyben az adott stacket használtam.',
+      'A Flashtől és a PHP-tól a .NET-en át a TypeScriptig, a Reactig, az Angularig és a Java Springig, alattuk végig SQL-lel. Minden sáv az első és az utolsó olyan munkakör közötti időszakot mutatja, amelyben az adott stacket használtam.',
     legendCurrent: 'jelenlegi',
     legendEarlier: 'korábbi',
     levelsTitle: 'Szenioritás munkakör szerint',
     levels: ['Junior', 'Fejlesztő', 'Senior · Lead', 'Architekt'],
-    figureLabel: 'Hat technológiai stack idővonala 2003 és 2026 között',
+    figureLabel: 'Nyolc technológiai stack idővonala 2003 és 2026 között',
   },
   experience: {
     kicker: 'Tapasztalat',
