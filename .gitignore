@@ -5,6 +5,7 @@
 !/README.md
 !/Dockerfile
 !/docker-compose.yml
+!/docker-compose.local.yml
 !/.dockerignore
 !/site/
 !/backend/

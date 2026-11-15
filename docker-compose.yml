@@ -3,10 +3,12 @@ services:
     build: .
     image: tibor-nemeth-cv
     restart: unless-stopped
-    ports:
-      - "${HOST_PORT:-3000}:3000"
+    expose:
+      - "3000"
     environment:
       PORT: 3000
+    labels:
+      - 'coolify.managed=true'
     healthcheck:
       test:
         - CMD

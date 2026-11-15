@@ -4,6 +4,12 @@ import { walk } from './walk.ts';
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const HTML = 'no-cache';
 const OTHER = 'public, max-age=86400';
+const HSTS = 'max-age=31536000';
+
+/** True if the client reached the proxy over HTTPS. With chained proxies the first value is the client's. */
+export function servedOverHttps(forwardedProto: string | null | undefined): boolean {
+  return forwardedProto?.split(',')[0].trim().toLowerCase() === 'https';
+}
 
 /**
  * SHA-256 hashes of every inline <script> in the built HTML, so the CSP can allow exactly
@@ -59,6 +65,9 @@ export function headers(csp: string): MiddlewareHandler {
     res.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
     res.headers.set('x-frame-options', 'DENY');
     res.headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+    // Behind a TLS-terminating proxy (Coolify's Traefik or Caddy) the request arrives over plain
+    // HTTP; the proxy says how the client connected. Only then is HSTS safe to send.
+    if (servedOverHttps(c.req.header('x-forwarded-proto'))) res.headers.set('strict-transport-security', HSTS);
     if (type.includes('text/html')) res.headers.set('content-security-policy', csp);
     if (res.headers.has('content-encoding')) res.headers.append('vary', 'Accept-Encoding');
   };

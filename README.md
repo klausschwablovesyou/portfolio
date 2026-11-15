@@ -5,11 +5,12 @@ background. The site is built with Astro as static files and served by a small D
 
 ```
 .
-├── deno.json            root tasks: build the site, then serve it
-├── Dockerfile           two-stage image: build the site, run the backend
-├── docker-compose.yml   runs the image on port 3000
-├── site/                Astro site (static output) + three.js scene
-└── backend/             Danet server: serves site/dist, picks the language for "/"
+├── deno.json                 root tasks: build the site, then serve it
+├── Dockerfile                two-stage image: build the site, run the backend
+├── docker-compose.yml        production service, for Coolify (HTTPS via its proxy)
+├── docker-compose.local.yml  publishes port 3000 for a local run
+├── site/                     Astro site (static output) + three.js scene
+└── backend/                  Danet server: serves site/dist, picks the language for "/"
 ```
 
 ## Requirements
@@ -86,6 +87,7 @@ Every response gets cache and security headers (`backend/src/http/headers.ts`):
   SHA-256 hashes, computed from the built HTML at startup, so **restart the backend after every
   rebuild**.
 - Text responses are compressed.
+- Behind an HTTPS proxy (`X-Forwarded-Proto: https`), responses also carry HSTS.
 
 ### The 3D scene
 
@@ -106,13 +108,18 @@ them.
 
 ## Docker
 
+`docker-compose.yml` is the production setup: it publishes no host port, because in production a
+reverse proxy (Coolify's) sits in front of it. For a local run, add `docker-compose.local.yml`,
+which publishes port 3000:
+
 ```sh
-docker compose up -d --build   # build the image and start it on http://localhost:3000
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build   # http://localhost:3000
 docker compose logs -f         # follow the logs
 docker compose down            # stop and remove the container
 ```
 
-`HOST_PORT` changes the port on the host (default `3000`), e.g. `HOST_PORT=8080 docker compose up -d`.
+`HOST_PORT` changes the local port (default `3000`), e.g.
+`HOST_PORT=8080 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`.
 Inside the container the backend always listens on `3000`.
 
 The `Dockerfile` has two stages:
@@ -125,11 +132,25 @@ Only `site/` and `backend/` go into the build context (`.dockerignore`); local `
 `dist` and `.env` files are left out. Compose restarts the container unless it was stopped by hand
 and marks it unhealthy if `/api/health` stops answering.
 
-The image does not handle TLS: put it behind a reverse proxy (Caddy, nginx, Traefik) for HTTPS.
+The container itself speaks plain HTTP. HTTPS comes from the proxy in front of it.
+
+## Deploying with Coolify (HTTPS)
+
+1. Point the domain's DNS `A`/`AAAA` record at the Coolify server.
+2. In Coolify, create a new resource from this Git repository with the **Docker Compose** build
+   pack (compose file `/docker-compose.yml`).
+3. Under **Domains**, set the `web` service's domain with the container port:
+   `https://cv.example.com:3000`.
+4. Deploy. Coolify generates the Traefik labels, gets a Let's Encrypt certificate and redirects
+   HTTP to HTTPS.
+
+There is no `ports:` in `docker-compose.yml`, because a published host port would bypass the
+proxy. Behind HTTPS (`X-Forwarded-Proto: https`) the backend also sends
+`Strict-Transport-Security`.
 
 ## Deployment
 
-With Docker, see above. Without it, on any machine with Deno and Node:
+With Coolify or Docker, see above. Without Docker, on any machine with Deno and Node:
 
 ```sh
 deno task build                     # or: cd site && npm ci && npm run build
