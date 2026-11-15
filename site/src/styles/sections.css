@@ -6,7 +6,7 @@
   inset: 0 0 auto;
   z-index: 50;
   height: var(--nav-h);
-  background: rgba(15, 38, 45, 0.9);
+  background: rgba(11, 22, 32, 0.9);
   border-bottom: 1px solid var(--hairline-ink);
 }
 
@@ -168,7 +168,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--on-ink);
-  background: rgba(15, 38, 45, 0.55);
+  background: rgba(11, 22, 32, 0.55);
 }
 
 .status::before {
@@ -246,7 +246,7 @@
   content: '';
   position: absolute;
   inset: 42% calc(-1 * var(--gutter)) -12% calc(-1 * var(--gutter));
-  background: radial-gradient(closest-side, rgba(15, 38, 45, 0.7), rgba(15, 38, 45, 0));
+  background: radial-gradient(closest-side, rgba(11, 22, 32, 0.7), rgba(11, 22, 32, 0));
   pointer-events: none;
 }
 
@@ -363,7 +363,7 @@
   padding: 0.28rem 0.5rem;
   border: 1px solid var(--hairline-ink);
   border-radius: 3px;
-  background: rgba(10, 28, 33, 0.82);
+  background: rgba(7, 15, 22, 0.82);
   font: 600 0.72rem/1.1 var(--mono);
   letter-spacing: 0.01em;
   color: var(--on-ink-soft);
@@ -490,7 +490,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid var(--hairline-ink);
   border-bottom: 1px solid var(--hairline-ink);
-  background: rgba(10, 28, 33, 0.72);
+  background: rgba(7, 15, 22, 0.72);
 }
 
 .stat {
@@ -583,7 +583,7 @@
   overflow: hidden;
   border-radius: 4px;
   background: var(--ink-raised);
-  box-shadow: 0 30px 60px -30px rgba(15, 38, 45, 0.55);
+  box-shadow: 0 30px 60px -30px rgba(11, 22, 32, 0.55);
 }
 
 .portrait picture {
@@ -619,7 +619,7 @@
 .js .portrait[data-reveal] {
   transform: translateZ(-180px) rotateY(-34deg) rotateX(12deg);
   transform-origin: 20% 60%;
-  box-shadow: 0 10px 30px -20px rgba(15, 38, 45, 0.3);
+  box-shadow: 0 10px 30px -20px rgba(11, 22, 32, 0.3);
   transition:
     opacity 1s var(--ease-out),
     transform 1.6s var(--ease-out),
@@ -628,7 +628,7 @@
 
 .js .portrait[data-reveal].is-in {
   transform: none;
-  box-shadow: 0 30px 60px -30px rgba(15, 38, 45, 0.55);
+  box-shadow: 0 30px 60px -30px rgba(11, 22, 32, 0.55);
 }
 
 .js .portrait[data-reveal] img {
@@ -796,7 +796,7 @@
   padding: clamp(1.25rem, 1rem + 2vw, 2.5rem);
   border: 1px solid var(--hairline-ink);
   border-radius: 4px;
-  background: rgba(10, 28, 33, 0.8);
+  background: rgba(7, 15, 22, 0.8);
 }
 
 /* corner marks, as on a drawing sheet */
@@ -1243,7 +1243,7 @@ html:not(.js) .job .job-dot {
   padding: clamp(1.4rem, 1rem + 1.5vw, 2.2rem);
   border: 1px solid var(--hairline-ink);
   border-radius: 4px;
-  background: linear-gradient(160deg, rgba(18, 44, 52, 0.9), rgba(10, 28, 33, 0.9));
+  background: linear-gradient(160deg, rgba(19, 34, 46, 0.9), rgba(7, 15, 22, 0.9));
   transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
   transition:
     transform 0.5s var(--ease-out),
@@ -1651,7 +1651,7 @@ html:not(.js) .job .job-dot {
   position: relative;
   padding: 2rem var(--gutter) 2.5rem;
   border-top: 1px solid var(--hairline-ink);
-  background: rgba(10, 28, 33, 0.6);
+  background: rgba(7, 15, 22, 0.6);
 }
 
 .footer-inner {

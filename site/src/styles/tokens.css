@@ -1,9 +1,9 @@
 /* Design tokens, carried over from cv-onepage.html so the site and the PDF read as one set. */
 :root {
   /* ink: dark sections */
-  --ink: #0f262d;
-  --ink-raised: #15323b;
-  --ink-deep: #0a1c21;
+  --ink: #0b1620;
+  --ink-raised: #13222e;
+  --ink-deep: #070f16;
   --on-ink: #eef3f1;
   --on-ink-soft: #c4d3d5;
   --on-ink-muted: #8fa9af;

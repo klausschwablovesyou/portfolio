@@ -34,7 +34,7 @@ import { createTerrain } from './terrain';
  * Quality steps down by itself on a slow GPU: 2 = film look, 1 = film look at a lower
  * resolution, 0 = no post-processing. `?fx=0|1|2` pins a step.
  */
-const INK = new Color('#0F262D');
+const INK = new Color('#0B1620');
 const CAMERA_Z = 16;
 const SCROLL_TO_WORLD = 0.02;
 

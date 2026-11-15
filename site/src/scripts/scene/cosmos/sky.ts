@@ -160,10 +160,10 @@ export function createSky(shared: Shared, octaves: number): Sky {
       uTime: shared.uTime,
       uTravel: shared.uTravel,
       // the page colour: the patches of it behind the text and the nav melt into the sky
-      uVoid: { value: new Color('#0F262D') },
+      uVoid: { value: new Color('#0B1620') },
       // brightest the gas gets; any lighter and the muted text on it drops under AA contrast
-      uGas: { value: new Color('#17404A') },
-      uWarm: { value: new Color('#3A3222') },
+      uGas: { value: new Color('#142B3B') },
+      uWarm: { value: new Color('#2C261C') },
       uLook: { value: new Vector2() },
       uBand: { value: band },
       uBandAt: { value: band.dot(new Vector2(0.1, -0.08)) },

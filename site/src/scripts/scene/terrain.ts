@@ -356,7 +356,7 @@ export function createTerrain(rows: number, aspect: number, shadowSteps = 22): T
     defines: { SHADOW_STEPS: shadowSteps },
     uniforms: {
       ...shared,
-      uInk: { value: new Color('#0F262D') },
+      uInk: { value: new Color('#0B1620') },
       uRock: { value: new Color('#3E5A5E') },
       uMeadow: { value: new Color('#4F7A6E') },
       uCap: { value: new Color('#C9E4DE') },
@@ -403,7 +403,7 @@ export function createTerrain(rows: number, aspect: number, shadowSteps = 22): T
     depthWrite: false,
     depthTest: false,
     uniforms: {
-      uInk: { value: new Color('#0F262D') },
+      uInk: { value: new Color('#0B1620') },
       uCool: { value: new Color('#2C7D8C') },
       uPale: { value: new Color('#A6DAD2') },
       uSun: { value: SUN },
