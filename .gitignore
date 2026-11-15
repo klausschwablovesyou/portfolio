@@ -1,7 +1,11 @@
-# Only deno.json, site/ and backend/ are tracked from the root folder
+# Only deno.json, README.md, the Docker files, site/ and backend/ are tracked from the root folder
 /*
 !/.gitignore
 !/deno.json
+!/README.md
+!/Dockerfile
+!/docker-compose.yml
+!/.dockerignore
 !/site/
 !/backend/
 
