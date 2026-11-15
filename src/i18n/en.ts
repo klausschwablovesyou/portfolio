@@ -146,6 +146,7 @@ const en: SiteContent = {
     kicker: 'Selected work',
     heading: 'Products I built',
     intro: 'Eight products from 2008 to 2026: what each one is, and what it runs on.',
+    newTab: '(opens the website in a new tab)',
     cards: [
       {
         name: 'Assign · Score · Surveillance',

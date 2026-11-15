@@ -101,6 +101,8 @@ export interface SiteContent {
     kicker: string;
     heading: string;
     intro: string;
+    /** screen-reader hint after a card's link: the site opens in a new tab */
+    newTab: string;
     cards: WorkCard[];
   };
   skills: {

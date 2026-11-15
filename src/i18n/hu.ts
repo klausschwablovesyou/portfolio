@@ -150,6 +150,7 @@ const hu: SiteContent = {
     kicker: 'Válogatott munkák',
     heading: 'Termékek, amelyeken dolgoztam',
     intro: 'Nyolc termék 2008 és 2026 között: mindegyiknél az, hogy mi a termék, és milyen technológiákra épül.',
+    newTab: '(a weboldal új lapon nyílik meg)',
     cards: [
       {
         name: 'Assign · Score · Surveillance',

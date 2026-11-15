@@ -26,7 +26,19 @@ const w = t.work;
               <article class="card" data-tilt>
                 <span class="card-glare" aria-hidden="true" />
                 <p class="card-years">{meta.years}</p>
-                <h3 class="card-name">{card.name}</h3>
+                <h3 class="card-name">
+                  {meta.url ? (
+                    <a class="card-link" href={meta.url} target="_blank" rel="noopener noreferrer">
+                      {card.name}
+                      <svg class="card-ext" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 17 17 7M9 7h8v8" />
+                      </svg>
+                      <span class="sr-only">{w.newTab}</span>
+                    </a>
+                  ) : (
+                    card.name
+                  )}
+                </h3>
                 <p class="card-company">
                   {card.company} <span>· {card.role}</span>
                 </p>
