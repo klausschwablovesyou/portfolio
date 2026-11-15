@@ -1,0 +1,356 @@
+/* Reset, page shell, shared utilities, motion states. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--nav-h) + 8px);
+  background: var(--ink);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--ink);
+  color: var(--on-ink);
+  font: 400 var(--fs-body) / 1.6 var(--serif);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+img,
+svg,
+canvas,
+picture {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+  padding: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.light :focus-visible {
+  outline-color: var(--amber-ink);
+}
+
+::selection {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  padding: 0.7rem 1rem;
+  background: var(--amber);
+  color: var(--ink);
+  font: 700 0.9rem/1 var(--sans);
+  text-decoration: none;
+  border-radius: 6px;
+  transform: translateY(-160%);
+  transition: transform 0.2s;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* ───────── 3D canvas ───────── */
+#scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.has-3d #scene {
+  opacity: 1;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+}
+
+/* ───────── section shells ───────── */
+.section {
+  position: relative;
+  padding: var(--section-pad) var(--gutter);
+}
+
+/* Dark sections are transparent: the fixed 3D canvas shows through them. */
+.dark {
+  background: transparent;
+  color: var(--on-ink);
+}
+
+/* Light sections are opaque and slide over the scene. */
+.light {
+  background: var(--paper);
+  color: var(--text);
+  color-scheme: light;
+}
+
+.wrap {
+  position: relative;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  font: 600 0.78rem/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+/* the same code-comment mark as the hero tagline */
+.kicker::before {
+  content: '//';
+  letter-spacing: 0;
+  opacity: 0.75;
+}
+
+.light .kicker {
+  color: var(--amber-ink);
+}
+
+.h2 {
+  max-width: 18ch;
+  font: 800 var(--fs-h2) / 0.98 var(--sans);
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.lead {
+  max-width: 60ch;
+  margin-top: 1.25rem;
+  font-size: var(--fs-lead);
+  line-height: 1.55;
+  color: var(--on-ink-soft);
+}
+
+.light .lead {
+  color: var(--text-soft);
+}
+
+.section-head {
+  margin-bottom: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+}
+
+/* ───────── ridge-shaped section edges (Ridge.astro) ───────── */
+.ridge {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--ridge-h);
+  pointer-events: none;
+}
+
+.ridge-top {
+  bottom: calc(100% - 1px);
+}
+
+.ridge-bottom {
+  top: calc(100% - 1px);
+}
+
+.ridge svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  translate: 0 var(--py, 0);
+}
+
+.ridge path {
+  fill: none;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.ridge .r-fill {
+  fill: var(--paper);
+}
+
+.ridge .r-back {
+  stroke: rgba(111, 163, 174, 0.5);
+}
+
+.ridge .r-mid {
+  stroke: rgba(242, 179, 61, 0.6);
+}
+
+/* room for the ridge in the dark section it reaches into */
+.dark:has(+ .light) {
+  padding-bottom: calc(var(--section-pad) + var(--ridge-h) * 0.7);
+}
+
+.light + .dark {
+  padding-top: calc(var(--section-pad) + var(--ridge-h) * 0.7);
+}
+
+/* ───────── buttons ───────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 48px;
+  padding: 0.85rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font: 650 0.95rem/1 var(--sans);
+  text-decoration: none;
+  transition:
+    background-color 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    transform 0.25s var(--ease-out);
+}
+
+.btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.25s var(--ease-out);
+}
+
+.btn:hover svg {
+  transform: translateX(3px);
+}
+
+.btn-primary {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.btn-primary:hover {
+  background: #ffc75a;
+}
+
+.btn-ghost {
+  border-color: rgba(238, 243, 241, 0.35);
+  color: var(--on-ink);
+}
+
+.btn-ghost:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* ───────── reveal on scroll ─────────
+   The hidden start state applies only when the motion script has started (html.js),
+   so without JavaScript every line of text is visible. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  /* going out: quicker and all at once */
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
+}
+
+/* left past the top edge: it goes out upwards, and comes back in from above */
+.js [data-reveal].is-above {
+  transform: translateY(-28px);
+}
+
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  transition-duration: 0.9s;
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Safety net: if the motion script never starts, the head script adds this after a delay. */
+.reveal-all [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
+  }
+
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-speed] {
+    translate: none !important;
+  }
+}

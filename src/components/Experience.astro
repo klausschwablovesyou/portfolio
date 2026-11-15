@@ -1,0 +1,52 @@
+---
+import type { SiteContent } from '../i18n';
+import Ridge from './Ridge.astro';
+
+interface Props {
+  t: SiteContent;
+}
+const { t } = Astro.props;
+const x = t.experience;
+---
+
+<section id="experience" class="section light experience" aria-labelledby="xp-title">
+  <Ridge edge="top" seed={14} />
+  <div class="wrap">
+    <div class="section-head">
+      <p class="kicker" data-reveal>{x.kicker}</p>
+      <h2 id="xp-title" class="h2" data-reveal style="--i:1">{x.heading}</h2>
+    </div>
+
+    <div class="jobs-wrap" data-timeline>
+    <span class="jobs-line" aria-hidden="true"><span class="jobs-fill" data-timeline-fill></span></span>
+    <ol class="jobs" role="list">
+      {
+        x.jobs.map((job) => (
+          <li class:list={['job', { now: job.current }]} data-reveal data-job>
+            <span class="job-dot" aria-hidden="true" />
+            <div class="job-meta">
+              <span class="when">{job.when}</span>
+              <span class="len">{job.length}</span>
+            </div>
+            <article class="job-body">
+              <h3>{job.title}</h3>
+              <p class="org">
+                {job.org} <span>· {job.orgNote}</span>
+              </p>
+              {job.points && (
+                <ul class="points" role="list">
+                  {job.points.map((p) => (
+                    <li set:html={p} />
+                  ))}
+                </ul>
+              )}
+              {job.desc && <p class="desc" set:html={job.desc} />}
+            </article>
+          </li>
+        ))
+      }
+    </ol>
+    </div>
+  </div>
+  <Ridge edge="bottom" seed={21} />
+</section>

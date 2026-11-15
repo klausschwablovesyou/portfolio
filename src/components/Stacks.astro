@@ -1,0 +1,56 @@
+---
+import type { SiteContent } from '../i18n';
+import { axisYears, levelSpans, stacks, timeline } from '../i18n/shared';
+
+interface Props {
+  t: SiteContent;
+}
+const { t } = Astro.props;
+const s = t.stacks;
+const plotVars = `--t0:${timeline.start};--span:${timeline.end - timeline.start}`;
+---
+
+<section id="stacks" class="section dark stacks-section" aria-labelledby="stacks-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="kicker" data-reveal>{s.kicker}</p>
+      <h2 id="stacks-title" class="h2" data-reveal style="--i:1">{s.heading}</h2>
+      <p class="lead" data-reveal style="--i:2">{s.intro}</p>
+    </div>
+
+    <figure class="chart" aria-label={s.figureLabel} data-reveal data-chart>
+      <figcaption class="chart-key">
+        <span><i class="k-now"></i>{s.legendCurrent}</span>
+        <span><i></i>{s.legendEarlier}</span>
+      </figcaption>
+      <ul class="plot" role="list" style={plotVars}>
+        {
+          stacks.map((st, i) => (
+            <li
+              class:list={['track', st.labelSide, { now: st.current }]}
+              style={`--from:${st.from};--to:${st.to};--i:${i}`}
+            >
+              <span class="bar" aria-hidden="true" />
+              <span class="lbl">
+                {st.name} <em>{st.years}</em>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="axis" style={plotVars} aria-hidden="true">
+        {axisYears.map((y) => <span style={`--y:${y}`}>{y}</span>)}
+      </div>
+      <p class="levels-title">{s.levelsTitle}</p>
+      <ol class="levels" role="list" style={plotVars}>
+        {
+          levelSpans.map((l, i) => (
+            <li class:list={{ now: l.current }} style={`--from:${l.from};--to:${l.to};--i:${i + 6}`}>
+              {s.levels[i]}
+            </li>
+          ))
+        }
+      </ol>
+    </figure>
+  </div>
+</section>

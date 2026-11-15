@@ -1,0 +1,71 @@
+---
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/source-serif-4/wght.css';
+import '@fontsource-variable/source-serif-4/wght-italic.css';
+import '@fontsource-variable/jetbrains-mono/wght.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/sections.css';
+
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { locales, localePath, type SiteContent } from '../i18n';
+
+interface Props {
+  t: SiteContent;
+  /** false on pages that are not a language page (404): no nav, no alternates */
+  full?: boolean;
+  title?: string;
+}
+
+const { t, full = true, title = t.meta.title } = Astro.props;
+---
+
+<!doctype html>
+<html lang={t.htmlLang} data-locale={t.locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={t.meta.description} />
+    <meta name="author" content="Tibor Németh" />
+    <meta name="theme-color" content="#0F262D" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {
+      full &&
+        locales.map((l) => <link rel="alternate" hreflang={l} href={localePath(l)} />)
+    }
+    {full && <link rel="alternate" hreflang="x-default" href="/" />}
+    <meta property="og:type" content="profile" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={t.meta.description} />
+    <meta property="og:locale" content={t.ogLocale} />
+    <meta property="profile:first_name" content="Tibor" />
+    <meta property="profile:last_name" content="Németh" />
+    <!-- Mark the document as scripted before first paint, so reveal start states never flash. -->
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      setTimeout(function () {
+        if (!window.__motion) document.documentElement.classList.add('reveal-all');
+      }, 2500);
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t.a11y.skipLink}</a>
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div class="page">
+      {full && <Nav t={t} />}
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+      <Footer t={t} />
+    </div>
+    <script>
+      import '../scripts/motion';
+      import '../scripts/nav';
+      import { start3d } from '../scripts/boot3d';
+      start3d();
+    </script>
+  </body>
+</html>

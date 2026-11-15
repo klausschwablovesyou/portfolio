@@ -1,0 +1,46 @@
+---
+import type { SiteContent } from '../i18n';
+import { workMeta } from '../i18n/shared';
+
+interface Props {
+  t: SiteContent;
+}
+const { t } = Astro.props;
+const w = t.work;
+---
+
+<section id="work" class="section dark work" aria-labelledby="work-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="kicker" data-reveal>{w.kicker}</p>
+      <h2 id="work-title" class="h2" data-reveal style="--i:1">{w.heading}</h2>
+      <p class="lead" data-reveal style="--i:2">{w.intro}</p>
+    </div>
+
+    <ol class="cards" role="list">
+      {
+        w.cards.map((card, i) => {
+          const meta = workMeta[i];
+          return (
+            <li class="card-cell" data-speed-desktop={i % 2 ? '-0.05' : '0'} data-reveal style={`--i:${i % 2}`}>
+              <article class="card" data-tilt>
+                <span class="card-glare" aria-hidden="true" />
+                <p class="card-years">{meta.years}</p>
+                <h3 class="card-name">{card.name}</h3>
+                <p class="card-company">
+                  {card.company} <span>· {card.role}</span>
+                </p>
+                <p class="card-sentence">{card.sentence}</p>
+                <ul class="tags" role="list">
+                  {meta.tags.map((tag) => (
+                    <li>{tag}</li>
+                  ))}
+                </ul>
+              </article>
+            </li>
+          );
+        })
+      }
+    </ol>
+  </div>
+</section>

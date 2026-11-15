@@ -1,0 +1,38 @@
+---
+// Fallback for hosting without the Danet backend (which answers "/" with a 302 itself).
+// Picks a language from the `lang` cookie or navigator.language; plain links work without JavaScript.
+import { defaultLocale, getContent, locales, localePath } from '../i18n';
+const t = getContent(defaultLocale);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.meta.title}</title>
+    <meta name="description" content={t.meta.description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {locales.map((l) => <link rel="alternate" hreflang={l} href={localePath(l)} />)}
+    <link rel="alternate" hreflang="x-default" href="/" />
+    <script is:inline define:vars={{ locales, fallback: defaultLocale }}>
+      var m = document.cookie.match(/(?:^|;\s*)lang=([a-z]{2})/);
+      var pick = m && locales.indexOf(m[1]) >= 0 ? m[1] : null;
+      if (!pick) {
+        var langs = navigator.languages || [navigator.language || ''];
+        for (var i = 0; i < langs.length && !pick; i++) {
+          var code = String(langs[i]).slice(0, 2).toLowerCase();
+          if (locales.indexOf(code) >= 0) pick = code;
+        }
+      }
+      location.replace('/' + (pick || fallback) + '/' + location.hash);
+    </script>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0f262d; color: #eef3f1; font: 1.1rem/1.5 Georgia, serif; }
+      a { color: #f2b33d; margin: 0 0.6rem; }
+    </style>
+  </head>
+  <body>
+    <p><a href="/en/" hreflang="en" lang="en">English</a> · <a href="/hu/" hreflang="hu" lang="hu">Magyar</a></p>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+---
+import type { SiteContent } from '../i18n';
+import Ridge from './Ridge.astro';
+import { marquee } from '../i18n/shared';
+
+interface Props {
+  t: SiteContent;
+}
+const { t } = Astro.props;
+const s = t.skills;
+---
+
+<section id="skills" class="section light skills" aria-labelledby="skills-title">
+  <Ridge edge="top" seed={27} />
+  <div class="wrap">
+    <div class="section-head">
+      <p class="kicker" data-reveal>{s.kicker}</p>
+      <h2 id="skills-title" class="h2" data-reveal style="--i:1">{s.heading}</h2>
+    </div>
+    <dl class="kit">
+      {
+        s.groups.map((g, i) => (
+          <div class="kit-group" data-reveal style={`--i:${i}`}>
+            <dt>{g.title}</dt>
+            <dd set:html={g.items} />
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+
+  <div class="marquee" role="region" aria-label={s.marqueeLabel}>
+    <div class="marquee-track">
+      <ul role="list">
+        {marquee.map((m) => <li>{m}</li>)}
+      </ul>
+      <ul role="list" aria-hidden="true">
+        {marquee.map((m) => <li>{m}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>

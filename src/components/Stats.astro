@@ -1,0 +1,32 @@
+---
+import type { SiteContent } from '../i18n';
+import { stats } from '../i18n/shared';
+
+interface Props {
+  t: SiteContent;
+}
+const { t } = Astro.props;
+---
+
+<section id="numbers" class="section dark stats-section" aria-labelledby="stats-title">
+  <div class="wrap">
+    <h2 id="stats-title" class="sr-only">{t.stats.heading}</h2>
+    <dl class="stats" data-stagger>
+      {
+        stats.map((value, i) => (
+          <div class="stat" data-reveal style={`--i:${i}`}>
+            <dt>
+              {t.stats.labels[i].split('\n').map((part, j) => (
+                <>
+                  {j > 0 && <br />}
+                  {part}
+                </>
+              ))}
+            </dt>
+            <dd data-count={value}>{value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>

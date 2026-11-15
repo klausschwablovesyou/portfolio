@@ -1,0 +1,374 @@
+# Implementation plan: multilingual CV + portfolio website
+
+This is a brief for whoever implements the site. It assumes you have not seen the conversation that produced it. Nothing is implemented yet: only dependencies are installed (see "Current state").
+
+Written 2026-11-12. The site has since been built, and its look was revised the same day: section 16 lists what replaced the visuals described in sections 7 to 10. Where they disagree, section 16 and the code win.
+
+## 1. Goal
+
+Build a one-page, scrollable CV and portfolio website for Tibor Németh, a full stack software architect, in English and Hungarian.
+
+The owner asked for a site that is **modern, spectacular, animated, with parallax, responsive, and with a few 3D elements made with three.js**. The audience is recruiters, hiring managers and technical leads, so the visual show must never get in the way of reading the CV.
+
+Fixed technology choices (the owner's, not negotiable):
+
+- **`site/`**: AstroJS, static output.
+- **`backend/`**: the Danet framework (Deno). Danet is the web server: it serves the built Astro site.
+- **3D**: three.js.
+
+Out of scope: CMS, admin UI, database, contact form.
+
+Done means: `npm run build` in `site/` succeeds, `deno task start` in `backend/` serves the result on one port, both languages render correctly at phone, tablet and desktop widths, and the checks in section 14 pass.
+
+## 2. Current state
+
+Project root: `/Users/megant/Works/cv`. It is not a git repository.
+
+Already present:
+
+- `site/package.json`, `site/package-lock.json`, `site/node_modules` with `astro`, `three`, `@types/three`, `typescript`, `@astrojs/check` and three Fontsource variable fonts.
+- `backend/deno.json` (only an import map entry for Danet so far) and `backend/deno.lock`.
+
+No source code exists in either folder. Do not touch the other files in the project root; they belong to the PDF CV workflow.
+
+Versions verified on this machine:
+
+| Tool | Version | Note |
+|---|---|---|
+| Node | 25.8.1 | Astro 7 requires at least 22.23.4 |
+| Astro | 7.4.11 | built on Vite 8 / Rolldown |
+| three | 0.187.0 | |
+| Deno | 2.9.7 | |
+| Danet | `jsr:@danet/core@2.12.0` | built on Hono 4.6.3 |
+| Fonts | `@fontsource-variable/archivo`, `@fontsource-variable/source-serif-4`, `@fontsource-variable/jetbrains-mono` | include latin-ext, needed for ő and ű |
+
+Astro 7 is recent. Check its behaviour against the installed package (`site/node_modules/astro`, config types in `dist/types/public/config.d.ts`) instead of relying on memory of older versions.
+
+## 3. Content sources and rules
+
+The owner named two sources for the text. Read both in full before writing content.
+
+- **`/Users/megant/Works/cv/cv-onepage.html`**: the polished one-page CV. It is the primary source for English wording (pitch, experience bullets, skill groups, headline numbers, the stack timeline data) and for the visual identity (colours, type).
+- **`/Users/megant/Works/cv/Profile.pdf`**: the LinkedIn export, 8 pages. It supplies details the one-pager leaves out: the technology list of every role, the 2003–2013 positions, and the headline "Full Stack Software Architect, and Ninja of course".
+
+Supporting files:
+
+- `/Users/megant/Works/cv/linkedin_profile.md` is a text snapshot of the same LinkedIn profile, easier to read than the PDF, with a list of its known typos. **Never fetch the live LinkedIn page**; it blocks automated requests and the owner asked for the snapshot to be used.
+- `/Users/megant/Works/cv/profile-photo.jpg` (1463×1672): the portrait. The face is centred in the upper half; for a circular or square crop use roughly `object-position: 50% 22%`, as the CV does.
+- `/Users/megant/Works/cv/Tibor_Nemeth_CV_OnePage.pdf`: the downloadable CV (English only).
+
+Rules:
+
+1. Publish only facts that appear in the sources. Do not invent projects, numbers, clients, testimonials or screenshots. There are no project screenshots, so portfolio cards are typographic.
+2. Where the LinkedIn export and the one-pager disagree, the one-pager wins. It already fixes the export's errors: "Sonarworks" is SonarQube, "CareDX" is CareDx, "CfDNA" is cfDNA, and ended roles are in the past tense (the CareDx role ended in July 2026).
+3. Leave out the age ("46 years old"). It is stale and does not belong on the site.
+4. The Hungarian text does not exist in any source; you translate it. The owner will proofread it, so say in your final report that it needs review.
+5. Name order: "Tibor Németh" in English, "Németh Tibor" in Hungarian.
+6. Hungarian copy avoids addressing the reader directly, so it needs neither the informal nor the formal register. For example, write "Közvetlenül is elérhető vagyok" instead of "Keressen bátran".
+7. Keep technology and product names and established developer terms in English in the Hungarian text (workspace, pipeline, code review, story mapping, PWA). Use a real en dash with spaces for Hungarian parenthetical dashes.
+
+## 4. Architecture
+
+```
+browser ──HTTP──▶ Danet (Deno, :3000)
+                    ├─ GET /            → 302 to /en/ or /hu/ (cookie, then Accept-Language)
+                    ├─ GET /api/health  → JSON
+                    └─ everything else  → static file from site/dist
+                                           (no match → dist/404.html with status 404)
+
+site/src ──astro build──▶ site/dist  (HTML, CSS, JS, images, fonts)
+```
+
+Astro builds a fully static site with no server rendering, so `dist` would also work on any static host. Danet adds language negotiation, cache and security headers, compression and the 404 page. During development `astro dev` gives hot reload; Danet always serves the finished build.
+
+## 5. Folder layout
+
+A proposal. Adjust names if something reads better, but keep the split between content, components, scripts and styles.
+
+```
+site/
+  plan.md                   # this file
+  astro.config.mjs          # static output, i18n: en + hu, both prefixed
+  tsconfig.json
+  public/
+    favicon.svg             # TN monogram; the outline path is in cv-onepage.html (.portrait svg)
+    Tibor_Nemeth_CV.pdf     # copy of Tibor_Nemeth_CV_OnePage.pdf
+  src/
+    assets/profile-photo.jpg
+    i18n/
+      types.ts              # SiteContent type that both languages must satisfy
+      shared.ts             # language-independent data: dates, stack spans, contact details, tech tags
+      en.ts
+      hu.ts
+      index.ts              # getContent(lang), locale list, URL helpers
+    layouts/Base.astro      # <head>, hreflang, fonts, canvas, nav, footer
+    pages/
+      index.astro           # fallback redirect for hosting without Danet
+      [lang]/index.astro    # the whole page; getStaticPaths → en, hu
+      404.astro
+    components/
+      Nav.astro  Hero.astro  Stats.astro  About.astro  Stacks.astro
+      Experience.astro  Work.astro  Skills.astro  Earlier.astro  Contact.astro  Footer.astro
+    scripts/
+      scene/                # three.js: index.ts, tower.ts, field.ts, shuriken.ts, anchors.ts
+      motion.ts             # reveals, parallax, counters, timeline, card tilt
+      nav.ts                # active section, progress bar, language switch
+    styles/
+      tokens.css  base.css  sections.css
+
+backend/
+  deno.json                 # imports, tasks, decorator compiler options
+  src/
+    main.ts                 # bootstrap: middleware, module, static assets, 404
+    app.module.ts
+    config.ts               # PORT, SITE_DIST, supported locales
+    locale/
+      locale.controller.ts  # GET /
+      locale.service.ts     # cookie + Accept-Language → locale
+    health/health.controller.ts
+    http/headers.ts         # cache and security headers
+  tests/locale.service_test.ts
+```
+
+## 6. Internationalisation
+
+- **Routes:** `/en/` and `/hu/`, both with a prefix. One `[lang]/index.astro` page generates both through `getStaticPaths`.
+- **Content:** one TypeScript object per language (`en.ts`, `hu.ts`) typed as `SiteContent`. A key missing from either language then fails the build, so nothing ships untranslated.
+- **Language-independent data** (years, technology names, phone number) lives once, in `shared.ts`.
+- **Root `/`:** Danet decides. Order: the `lang` cookie, then the `Accept-Language` header, then English. Respond with 302 and `Vary: Accept-Language, Cookie`. `src/pages/index.astro` is a static fallback for hosting without Danet: a small page that redirects by `navigator.language` and has plain links to both languages.
+- **Language switch:** `EN | HU` in the nav. On click it sets the `lang` cookie and keeps the current section (`/hu/#experience`).
+- **SEO:** `<html lang>`, a title and description per language, and `link rel="alternate" hreflang` for `en`, `hu` and `x-default`.
+- **Adding a language** should take one new content file plus one entry in the locale list (frontend and backend).
+
+Not yet tested: how Astro 7's `i18n` config behaves alongside a hand-written `src/pages/index.astro`. If the built-in routing fights it, set `redirectToDefaultLocale: false`, or drop the `i18n` config and rely on the `[lang]` route alone.
+
+## 7. Page structure
+
+Dark and light sections alternate. Dark sections are transparent, so the fixed 3D canvas shows through them; light sections are opaque and slide over the scene. That contrast is the main parallax effect of the page.
+
+| # | Section | Background | Content | Source |
+|---|---|---|---|---|
+| 0 | Nav | – | TN monogram, section links, language switch, scroll progress bar | – |
+| 1 | Hero | dark | status pill, name, role, `// and Ninja, of course`, pitch, two buttons; 3D stack tower | one-pager + Profile |
+| 2 | Stats | dark | 23 / 6 / 3 / 11, counting up | one-pager |
+| 3 | About | light | portrait, intro paragraph, the "favourite boss" quote, leadership strengths, languages | both |
+| 4 | Six stacks in 23 years | dark | timeline chart 2003–2026 and the level band: Junior → Developer → Senior · Lead → Architect | one-pager |
+| 5 | Experience | light | six roles, 2013–2026, on a timeline that fills as you scroll | one-pager |
+| 6 | Selected work | dark | eight project cards (below) | Profile + one-pager |
+| 7 | Skills | light | five skill groups and a running marquee of technologies | one-pager |
+| 8 | Earlier · 2003–2013 | light | seven-row ledger | one-pager |
+| 9 | Contact | dark | phone (Signal), email, LinkedIn, location · CET, CV download; 3D shuriken | both |
+| 10 | Footer | dark | name, year, "Astro · three.js · Danet" | – |
+
+Take the hero pitch, status line, stats, experience entries, skill groups, leadership list, languages, ledger and quote from `cv-onepage.html` as written.
+
+### New copy
+
+Two pieces of English text are not in the sources verbatim. Use these; every claim in them is supported by the sources.
+
+About paragraph:
+
+> Full stack senior developer and architect from Hungary, building for the web since 2003. I started with Flash and PHP and moved through .NET to TypeScript, Angular and Java Spring: six stacks in 23 years. For the last six years I have worked as an architect and team lead, designing the system, leading an international team, reviewing code and mentoring, while still shipping code myself.
+
+Contact heading and line: "Let's talk." and "Feel free to get in touch directly." (the second is from the LinkedIn summary).
+
+### Selected work
+
+Experience and Selected work cover overlapping ground, so give them different jobs. **Experience describes the role**: what he did and was responsible for. **Selected work describes the product**: what it is and what it runs on. Each card shows a large index number, the product name, one sentence, the role, the years and technology tags.
+
+| # | Product | Company, years | Role | One sentence | Tags |
+|---|---|---|---|---|---|
+| 1 | Assign · Score · Surveillance | CareDx, 2021–26 | Architect · team lead | Client applications of three transplant-diagnostics products in one shared Angular workspace, with ThreeJS visualisations and Electron desktop builds on Java Spring services. | Angular workspace, TypeScript, ThreeJS, Electron, Java Spring, SQLite, Cypress, Jest, Azure DevOps |
+| 2 | Delivery & Provider manager platforms | ROKSH, 2020–21 | Architect · lead developer | Platforms for a grocery delivery service, ALDI Hungary's partner: .NET Core services on Azure, Angular PWAs and payment integrations. | .NET Core 3.1, Azure, Angular 11, PWA, Revolut, Barion |
+| 3 | 10XOne ERP | Freelance, 2019–20 | Senior full stack .NET developer | Maintaining existing functionality, and researching and implementing new features, in the 10XOne ERP. | .NET Core 3.1, ASP.NET, WPF, SignalR, MSSQL, React |
+| 4 | StoriesOnBoard | DevMads, 2017–19 | Full stack developer | Single-page application development for an industry-leading story mapping tool. | TypeScript, KnockoutJS, C# / .NET, Azure, MSSQL |
+| 5 | Iceberg & Outlast Framework | Outlast, 2015–16 | Senior full stack developer · remote | An agency's own PHP and JavaScript framework and an ASP.NET platform, with many API integrations: Google Maps, SendGrid, Postmark, Xero, ACHWorks. | PHP, JavaScript, ASP.NET, T-SQL, Node.js, Google Maps, SendGrid, Xero |
+| 6 | GPS fleet tracking | AsystANT, 2013–15 | Senior web developer | A GPS-based vehicle fleet tracking application for web and desktop, with Oracle, ExtJS and Symfony under the hood. | Symfony, ExtJS, Oracle PL/SQL, REST |
+| 7 | University of Omniscience portal | Mindentudás Egyeteme, 2010–11 | Joomla CMS developer | Web portal of the well-known Hungarian science TV programme, built on Joomla. | PHP5, Joomla (K2), MySQL |
+| 8 | Website-builder application | Megaweb, 2008–09 | PHP developer | A custom, commercial online website maker on the company's own PHP framework ("mayaFish"). | PHP5, MySQL, Dojo, ExtJS |
+
+In Hungarian, card 7 is "Mindentudás Egyeteme portál"; that is the programme's real name.
+
+## 8. Visual direction
+
+Carry over the identity of the existing PDF CV so the two read as one set. All of it is defined in the `<style>` block of `cv-onepage.html`.
+
+Colours:
+
+| Role | Value |
+|---|---|
+| Ink (dark background) | `#0F262D`, raised surface `#15323B` |
+| Text on ink | `#EEF3F1`, soft `#C4D3D5`, muted `#8FA9AF` |
+| Amber (accent) | `#F2B33D`; on light backgrounds use `#8A5709` for text and `#C8841A` for fills |
+| Paper (light background) | `#FBFCFB`, text `#12262C` |
+| Bars of earlier stacks | `#5B7D85` |
+
+Typography, three voices as in the CV:
+
+- **Structure:** Archivo. Headlines use the variable font at its widest setting (`font-stretch: 125%`) and weight 800; import `@fontsource-variable/archivo/wdth.css` to get the width axis.
+- **Prose:** Source Serif 4.
+- **Data** (dates, tags, code-like fragments): JetBrains Mono.
+
+The `fonts/` folder in the project root holds subsets built for the PDF. Do not use them for the site; the Fontsource packages cover Hungarian.
+
+**Signature motif:** the "six stacks in 23 years" timeline. The 3D tower in the hero shows the same data in space that the chart in section 4 shows precisely.
+
+## 9. 3D elements (three.js)
+
+One fixed, full-window `<canvas>` behind the content, with a single renderer and scene.
+
+1. **Stack tower (hero).** Six slabs stacked vertically, newest on top. The horizontal axis is time (2003–2026), so each slab's length and offset are that stack's real span, which turns the CV chart into a staircase in space. The `--from` and `--to` values are on the `.track` elements in `cv-onepage.html`. The three current stacks (TypeScript, Angular, Java Spring) are amber; the three earlier ones (.NET · C#, PHP · Symfony, Flash · ActionScript) are grey-teal with blueprint-style edge lines. The tower turns slowly and follows the pointer; as the hero scrolls away, the slabs separate and rotate. Labels are HTML elements positioned by projecting 3D points to the screen, so the text stays crisp and readable by assistive technology.
+2. **Depth particle field and grid plane (whole page).** The camera travels through it on scroll; this gives the background its parallax.
+3. **Shuriken (contact).** A slowly spinning four-point throwing star with amber edges, a nod to "Ninja" in the LinkedIn headline. It speeds up on pointer movement. Keep it elegant, not cartoonish.
+
+**DOM anchors.** Each 3D object follows an empty HTML element (for example `data-anchor="tower"`). Every frame the scene converts that element's screen rectangle into a world position. The 3D layout then follows the responsive HTML layout and scrolls with the page without separate breakpoints in the scene code.
+
+Performance and fallbacks:
+
+- Cap the device pixel ratio at 2. Render only while a dark section is on screen and the tab is visible.
+- Load three.js as a separate, deferred chunk. The text must appear without waiting for it.
+- Without WebGL the canvas stays hidden and the content is complete.
+- With `prefers-reduced-motion` the scene holds still and redraws only on scroll and resize.
+
+## 10. Animation and parallax
+
+Write a small script of your own with `IntersectionObserver` and a single `requestAnimationFrame` loop. An animation library is not needed.
+
+| Effect | Where | Approach |
+|---|---|---|
+| Name reveals letter by letter | hero | masked lines, staggered delay |
+| Reveal on scroll | every section | `data-reveal`, stagger through a `--i` custom property |
+| Parallax layers | huge outlined section numerals, portrait, quotation mark, card columns | `data-speed`; offset proportional to the distance from the viewport centre |
+| Fixed 3D background | dark sections | light sections slide over it |
+| Counting numbers | Stats | when they enter the viewport |
+| Growing bars | Six stacks | `scaleX` from 0 to 1, staggered |
+| Filling timeline | Experience | scroll progress drives the line height and activates the dots |
+| Card tilt and glare | Selected work | CSS `perspective`, pointer tracking |
+| Technology marquee | Skills | CSS animation |
+| Progress bar, active nav item | nav | scroll progress, section observer |
+
+With `prefers-reduced-motion`, turn off parallax, tilt and the marquee, and show content immediately. Without JavaScript all text must still be readable: apply the hidden starting state of reveals only once the script has started (for example through a class on `<html>`).
+
+## 11. Responsive behaviour and accessibility
+
+- **Breakpoints:** phone (< 640 px), tablet (640–1024 px), desktop (> 1024 px). Fluid type with `clamp()`.
+- **Phone:** one column. The stack tower moves below the hero text at a smaller size. The nav shrinks to the monogram and the language switch. No horizontal scrolling at any width.
+- **Accessibility:** semantic heading order, a skip link, visible focus, WCAG AA contrast, `aria-hidden` on the canvas, `alt` text on the portrait, and every function reachable by keyboard.
+- **Images:** run the portrait through Astro's image pipeline (`sharp` is installed) for modern formats and several sizes.
+
+## 12. Backend (Danet)
+
+Facts read from the Danet 2.12.0 source:
+
+- `app.useStaticAssets(dir)` serves files. It maps both `/en` and `/en/` to `en/index.html`. **It needs an absolute path**: it prepends `/` to the resolved path on non-Windows systems.
+- It sets no cache headers. When a file is missing it logs a warning and passes the request on, which ends in a bare 404. Hence the custom header layer and 404 handler below.
+- A controller method may return a ready `Response`, which Danet sends as is. That is the simple way to redirect.
+- `app.use(mw)` registers a Hono middleware for all routes; `app.router` exposes the underlying Hono instance.
+- Decorators need `"experimentalDecorators": true` and `"emitDecoratorMetadata": true` under `compilerOptions` in `deno.json`.
+
+Parts:
+
+| Part | Job |
+|---|---|
+| `LocaleController` + `LocaleService` | `GET /` → 302 to the right language (cookie → `Accept-Language` → English). Keep the negotiation logic in the injectable service and unit test it. |
+| `HealthController` | `GET /api/health` → `{ status, uptime }` |
+| Header middleware (`app.use`) | `/_astro/*`: one year, `immutable`; HTML: `no-cache`; security headers (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a CSP that fits the built site) |
+| Compression | Hono's `compress` middleware; it matters because of the three.js bundle |
+| Static files | `app.useStaticAssets(SITE_DIST)`, called after `init` so controllers take precedence |
+| 404 | `app.router.notFound` → `dist/404.html` with status 404 |
+
+Configuration through environment variables: `PORT` (default 3000) and `SITE_DIST` (default `../site/dist`, resolved to an absolute path from `import.meta.dirname`). Deno permissions: `--allow-net --allow-read --allow-env`.
+
+Not yet tested:
+
+- Importing `compress` from `jsr:@hono/hono@4.6.3/compress`. Use the same Hono version Danet pins, to keep the middleware types compatible.
+- A request path that matches a directory without an `index.html` (for example `/_astro`). Make sure it ends in a clean 404 and not an error.
+
+## 13. Running
+
+```bash
+# development with hot reload
+cd site && npm run dev
+
+# production: build, then serve with Danet
+cd site && npm run build
+cd ../backend && deno task start        # http://localhost:3000
+
+# both in one step
+cd backend && deno task serve
+```
+
+Planned `deno task`s: `dev` (watch mode), `start`, `build:site`, `serve`, `test`.
+
+## 14. Order of work and verification
+
+Suggested order, so that there is a complete page at every stage:
+
+1. Scaffold: Astro config, i18n routes, `Base.astro`, tokens, fonts.
+2. Content: `types.ts`, `shared.ts`, `en.ts`, then `hu.ts`.
+3. Sections as static HTML and CSS, phone first. The page is complete without animation.
+4. Motion: reveals, parallax, counters, timeline, card tilt.
+5. 3D: scene, anchors, tower, particle field, shuriken, fallbacks.
+6. Backend: Danet module, locale negotiation, headers, static files, 404.
+7. Verification and polish.
+
+Verification:
+
+- `astro check` and `astro build` without errors; `deno check` and `deno test` in the backend.
+- With `curl` against the running Danet server: `/` redirects according to the cookie and `Accept-Language`; `/en/` and `/hu/` return 200; an unknown path returns 404 with the custom page; the cache and security headers are present.
+- Screenshots at 390, 768 and 1440 px width, in both languages, at several scroll positions. Google Chrome is installed at `/Applications/Google Chrome.app` and runs headless; WebGL in headless mode may need a software-rendering flag such as `--enable-unsafe-swiftshader`. Look at the screenshots: check for overlapping text, overflow and unreadable contrast over the 3D scene.
+- Reduced motion, no WebGL and no JavaScript each still give a complete, readable page.
+
+## 15. Open questions and defaults
+
+The owner has not answered these. Proceed with the default and list them in your final report so the owner can change them.
+
+| Question | Default |
+|---|---|
+| Domain | Unknown. Leave `site` unset in `astro.config.mjs` and omit the canonical URL and absolute Open Graph image URL. |
+| Phone number and email on a public site | Show both; they are on the CV. Keep them in `shared.ts` so the phone number is easy to remove. |
+| "Ninja" tagline and the shuriken | Include both. The one-page CV dropped the tagline, so keep the shuriken easy to swap for a neutral shape. |
+| Downloadable CV | Offer `Tibor_Nemeth_CV_OnePage.pdf` on both languages and label it as English on the Hungarian page. No Hungarian PDF exists. |
+| Third language | No. English and Hungarian only. |
+| Contact form | No. Direct contact details instead. |
+| Hosting | Undecided. Do not add a `Dockerfile` or deployment config. |
+
+## 16. Design revision (2026-11-12)
+
+The owner found the first build generic: the star-like particle background was boring and the 3D slab tower did not look good. The revision keeps the content, palette, fonts, routing and backend, and changes the visuals. The motif is now the line: ridgelines, branch lines, timeline rails.
+
+| Was (sections 7–10) | Now | Where |
+|---|---|---|
+| Depth particle field and grid plane | **Ridgeline terrain**: a noise heightfield drawn only with one line per row, over an ink-coloured surface that hides the ridges behind nearer ones. It has its own camera; scrolling flies it forward, raises it and tilts it down, and it returns to the low horizon view at the contact section. A cool glow sits behind the mountains. | `src/scripts/scene/terrain.ts` |
+| Stack tower of six slabs | **Stack graph**: the career drawn as a git graph. A trunk runs 2003 → today, each stack forks off at its first year and merges back at its last, the three current stacks stay open and run to today in amber with a light at the head. Dots on the trunk are role starts (`roleStarts` in `src/i18n/shared.ts`). It draws itself in from 2003 on load. Labels are still HTML, styled as git refs: open branches right of the head, merged branches under the line. | `src/scripts/scene/graph.ts`, `Hero.astro` |
+| Flat extruded shuriken | A hira shuriken built like the real thing: a flat steel plate with wide blades, a hole in the middle and a ground bevel all round (flat-shaded, so flat and bevels catch the light differently), with afterimages when it spins up. An earlier version (a spine on every point, two gimbal rings, tilted far over) read as a compass rose, not a throwing star: keep it flat, holed, ring-free and nearly face-on. | `src/scripts/scene/shuriken.ts` |
+| One scene, one camera | Two layers on one renderer: terrain with its camera, then the anchored objects with the straight camera (`autoClear` off, depth cleared in between). Since the second revision both go through `post.ts`. | `src/scripts/scene/index.ts` |
+| Straight edges between dark and light sections | **Ridge-shaped edges**: light sections rise out of the terrain as a paper mountain ridge and break off into dark peaks, with thin ridgelines on their own parallax speed. Profiles are generated at build time from a seed. | `src/components/Ridge.astro`, `base.css` |
+| Huge outlined section numerals 01–05, large outlined card numbers | Removed: the sections are not a sequence. Kickers carry the `//` mark of the hero tagline; work cards lead with their years. | components, `base.css` |
+| Pill buttons, 20 px rounded glass cards | Square, engineered surfaces: 3–4 px radii, hairlines, amber corner marks on the chart and the work cards. | `sections.css` |
+
+### Film look (second revision, same day)
+
+The owner asked for a more cinematic animation, with depth of field. Added:
+
+| What | How | Where |
+|---|---|---|
+| Depth of field | The terrain is rendered to a half-float target with a depth texture. A gather blur on a golden-angle spiral runs at half resolution and is mixed over the sharp image by blur radius (reciprocal-distance model: near ground blurs fast, the far distance levels off). The anchored objects are drawn afterwards and stay sharp. | `src/scripts/scene/post.ts` |
+| Rack focus | The focus distance starts on the near ground and pulls out to the mountains during the opening shot, moves nearer when the camera looks down mid-page, and follows the pointer's height a little. It is eased, never set directly. | `index.ts` (`focusNow`) |
+| Bloom and anamorphic streak | Soft-threshold bright pass, a four-level dual-filter pyramid, plus three horizontal blur steps for a wide streak on the hottest lights (the open branch heads). | `post.ts` |
+| Lens and film | Slight colour fringing towards the corners, vignette, highlight roll-off that leaves values below the knee untouched, grain added after the sRGB conversion. | `post.ts` (final pass) |
+| Dust motes | Sixteen points (eight on phones) between camera and mountains that draw their own bokeh from the same focus uniforms: big faint discs out of focus, small specks in focus. Hidden behind the land with the terrain depth. | `src/scripts/scene/motes.ts` |
+| Camera | Opening push-in that eases to rest, a faint hand-held sway, and inertia on the scroll position that drives the terrain camera (the anchored objects still follow the DOM exactly). | `terrain.ts`, `index.ts` |
+| Quality steps | 2 = film look at pixel ratio ≤ 1.5; 1 = film look at ratio 1 with fewer samples; 0 = no post-processing. The scene steps down by itself when frames average over 38 ms, never up. `?fx=0|1|2` pins a step (used for the screenshots, because software rendering would step down at once). Without float render targets, or with reduced motion, see below. | `index.ts` |
+
+With `prefers-reduced-motion` the film look stays on but nothing moves: one still frame, focus already at rest, static grain.
+
+Things to know when changing it further:
+
+- The clear colour is set again after every `setRenderTarget`: three converts it to the colour space of the target that is bound at that moment.
+- Post-processing was only checked in headless Chrome with software rendering. Safari, iOS and low-end Android GPUs are untested; `post.check()` falls back to the plain picture if the float targets are refused.
+
+- ShaderMaterials end with `#include <colorspace_fragment>`; colours passed as uniforms are linear, so without it they come out too dark.
+- The terrain lines and its hiding surface share one vertex buffer and one vertex shader, so they sit on identical heights; the surface is pushed back with `polygonOffset`. Keep them in sync.
+- On narrow anchors the graph is stretched vertically (`stretch` in `index.ts`) so the labels keep apart; dots are counter-scaled to stay round.
+- Verified with headless Chrome (`--enable-unsafe-swiftshader`) at 390, 820 and 1440 px in both languages, with reduced motion and with JavaScript off; `astro check` and `astro build` pass.

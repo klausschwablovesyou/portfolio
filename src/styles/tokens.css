@@ -1,0 +1,48 @@
+/* Design tokens, carried over from cv-onepage.html so the site and the PDF read as one set. */
+:root {
+  /* ink: dark sections */
+  --ink: #0f262d;
+  --ink-raised: #15323b;
+  --ink-deep: #0a1c21;
+  --on-ink: #eef3f1;
+  --on-ink-soft: #c4d3d5;
+  --on-ink-muted: #8fa9af;
+  --hairline-ink: rgba(238, 243, 241, 0.15);
+  --amber: #f2b33d;
+  --bar-earlier: #5b7d85;
+
+  /* paper: light sections */
+  --paper: #fbfcfb;
+  --paper-sunk: #f1f4f3;
+  --text: #12262c;
+  --text-soft: #3a5259;
+  --text-muted: #5b7379;
+  --rule: #d3dbd9;
+  --rule-soft: #e5eae8;
+  --amber-ink: #8a5709;
+  --amber-fill: #c8841a;
+
+  /* three voices: structure (sans), prose (serif), data (mono) */
+  --sans: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --serif: 'Source Serif 4 Variable', Georgia, serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, Menlo, monospace;
+
+  /* fluid type */
+  --fs-display: clamp(3.1rem, 1.6rem + 7.4vw, 8.4rem);
+  --fs-h2: clamp(2rem, 1.3rem + 3.2vw, 4rem);
+  --fs-h3: clamp(1.15rem, 1.05rem + 0.45vw, 1.4rem);
+  --fs-lead: clamp(1.1rem, 1rem + 0.5vw, 1.35rem);
+  --fs-body: clamp(1rem, 0.96rem + 0.2vw, 1.1rem);
+  --fs-small: 0.875rem;
+  --fs-mono: 0.78rem;
+
+  /* layout */
+  --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
+  --max: 1240px;
+  --section-pad: clamp(5rem, 3rem + 8vw, 10rem);
+  --nav-h: 64px;
+  --ridge-h: clamp(52px, 7.5vw, 120px);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}

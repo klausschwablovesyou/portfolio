@@ -1,0 +1,17 @@
+---
+import type { SiteContent } from '../i18n';
+
+interface Props {
+  t: SiteContent;
+}
+const { t } = Astro.props;
+const year = new Date().getFullYear();
+const name = t.locale === 'hu' ? 'Németh Tibor' : 'Tibor Németh';
+---
+
+<footer class="site-footer dark">
+  <div class="wrap footer-inner">
+    <span class="footer-name">{name}</span>
+    <span class="footer-meta">© {year} · {t.footer.builtWith}</span>
+  </div>
+</footer>
