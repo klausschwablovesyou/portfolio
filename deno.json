@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "build": {
+      "description": "Build the Astro site into site/dist",
+      "command": "cd site && npm run build"
+    },
+    "start": {
+      "description": "Build the site, then serve it with the Danet backend (PORT, default 3000)",
+      "command": "cd backend && deno task start",
+      "dependencies": ["build"]
+    }
+  }
+}
