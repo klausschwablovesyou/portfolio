@@ -2,8 +2,8 @@ import { Group, PerspectiveCamera, Scene, Vector2, Vector3 } from 'three';
 import { createMeteor } from './meteor';
 import { createPlanet } from './planet';
 import { drawOrder, FOV, HALF_VIEW, wrap, type Shared } from './shared';
+import { createSatellite } from './satellite';
 import { createSky } from './sky';
-import { createSolid, type SolidKind } from './solids';
 import { createStars } from './stars';
 
 /**
@@ -12,7 +12,7 @@ import { createStars } from './stars';
  *  - the sky (sky.ts): thin gas and star dust, almost fixed;
  *  - the stars (stars.ts): points at every depth, endless in all directions;
  *  - the planet (planet.ts): the one landmark, far away, with rings and two moons;
- *  - the solids (solids.ts): a few glass polyhedra that tumble slowly;
+ *  - the satellite (satellite.ts): nearer, on the other side of the view, turning slowly;
  *  - a shooting star now and then (meteor.ts).
  *
  * The camera never leaves the origin: the field moves past it. Where the camera "is" in the
@@ -37,7 +37,8 @@ export interface Cosmos {
     /** the picture goes straight to the canvas instead of through post.ts */
     direct: boolean;
   }): void;
-  resize(aspect: number, viewHeight: number, pixelRatio: number): void;
+  /** `margin`: the free strip to the left of the page column, as a part of the view width */
+  resize(aspect: number, viewHeight: number, pixelRatio: number, margin: number): void;
   dispose(): void;
 }
 
@@ -45,8 +46,8 @@ export interface Cosmos {
 const REF = 9;
 /** how far above its resting place the camera starts, in world units */
 const INTRO_DROP = 9;
-/** a solid comes round again after this many view heights of its own movement */
-const LAP = 2.2;
+/** the satellite comes round again after this many view heights of its own movement */
+const LAP = 1.3;
 
 /**
  * Where things are. `at` is the place in the view while the page is at the top: x and y from
@@ -56,25 +57,23 @@ const LAP = 2.2;
 const PLANET = { depth: 150, size: 0.18, at: [0.82, -0.88] };
 
 /*
- * The text of the page is set to the left, so the solids keep to the right half and to the
- * left margin, in columns: the planet has the outer right one to itself. Two solids share a
- * column only if they never meet in it, because the nearer one rises faster and would pass
- * through the other.
+ * The planet has the right edge, the satellite the left side, low in the view. The text of the
+ * page is set to the left as well, so there are two places for it. Where the page column leaves
+ * a margin that holds it with room to spare (a wide screen), it floats in the middle of that
+ * margin. Otherwise it is at `at`: beside the buttons under the copy of the first screen, the
+ * one spot of the left half that stays free on a laptop.
+ *
+ * It is nearer than the planet, so it rises faster as the page scrolls, leaves at the top and
+ * comes in again from below.
  */
-const SOLIDS: { kind: SolidKind; depth: number; size: number; at: [number, number]; spin: number; warm?: boolean }[] = [
-  { kind: 'icosahedron', depth: 34, size: 0.11, at: [0.3, 0.62], spin: 0.11 },
-  { kind: 'dodecahedron', depth: 46, size: 0.1, at: [0.55, -1.45], spin: 0.09 },
-  { kind: 'star', depth: 60, size: 0.065, at: [0.55, 0.7], spin: 0.13 },
-  { kind: 'tesseract', depth: 52, size: 0.085, at: [0.55, 1.6], spin: 0.08 },
-  { kind: 'octahedron', depth: 44, size: 0.05, at: [-1, -0.8], spin: 0.16, warm: true },
-];
+const SATELLITE = { depth: 64, size: 0.16, at: [-0.27, -0.8], margin: { y: -0.62, room: 1.5 } };
 
 /*
- * An upright screen has no free half: the text runs the whole width. There the planet starts
- * below the view and comes up later, and only the first two solids are shown, half out of
- * view on the left edge and fainter.
+ * An upright screen has no free side: the text runs the whole width. There the planet starts
+ * below the view and comes up later, and the satellite is fainter and keeps to the gap between
+ * the buttons and the graph, which is lower on a phone, where the copy takes more of the height.
  */
-const UPRIGHT = { below: 1.06, aspect: 0.9, solids: 2, x: -1, fade: 0.75 };
+const UPRIGHT = { below: 1.06, aspect: 0.9, satellite: [-0.66, -0.3], phone: [-0.66, -0.5], fade: 0.7 };
 
 export function createCosmos(small: boolean): Cosmos {
   const scene = new Scene();
@@ -92,16 +91,11 @@ export function createCosmos(small: boolean): Cosmos {
   const sky = createSky(shared, small ? 3 : 4);
   const stars = createStars(shared);
   const planet = createPlanet(shared);
-  const solids = (small ? SOLIDS.slice(0, UPRIGHT.solids) : SOLIDS).map((spec, i) => ({
-    spec,
-    body: createSolid(spec.kind, shared, { spin: spec.spin, seed: i + 1, warm: spec.warm }),
-    // the far ones are dimmer, as if seen through more of the dark
-    fade: 1 - 0.45 * Math.min(1, Math.max(0, (spec.depth - 24) / 70)),
-  }));
+  const satellite = createSatellite(shared);
   const meteor = createMeteor(shared);
 
   // far to near; the planet is drawn after the stars, so its dark disc covers them
-  const layers = [[stars.points], [planet.group], solids.map((s) => s.body.group), [meteor.mesh]].map((parts, i) => {
+  const layers = [[stars.points], [planet.group], [satellite.group], [meteor.mesh]].map((parts, i) => {
     const layer = new Group();
     layer.add(...parts);
     drawOrder(layer, i + 1);
@@ -115,6 +109,8 @@ export function createCosmos(small: boolean): Cosmos {
   let fit = 1;
   /** and the camera floats less far sideways there, in step with the width */
   let reach = 1;
+  /** where the satellite is while the page is at the top, as `at` above */
+  let home = SATELLITE.at;
 
   return {
     scene,
@@ -148,26 +144,28 @@ export function createCosmos(small: boolean): Cosmos {
         planet.group.scale.setScalar(PLANET.size * halfH * fit);
         planet.update(time);
       }
-      solids.forEach(({ spec, body, fade }, i) => {
-        body.group.visible = !upright || i < UPRIGHT.solids;
-        if (!body.group.visible) return;
-        const halfH = HALF_VIEW * spec.depth;
-        body.group.position.set(
-          (upright ? UPRIGHT.x : spec.at[0]) * halfH * aspect - tx,
-          wrap(spec.at[1] * halfH - ty, 2 * halfH * LAP),
-          -spec.depth,
+      {
+        const halfH = HALF_VIEW * SATELLITE.depth;
+        satellite.group.position.set(
+          home[0] * halfH * aspect - tx,
+          wrap(home[1] * halfH - ty, 2 * halfH * LAP),
+          -SATELLITE.depth,
         );
-        body.group.scale.setScalar(spec.size * halfH * fit);
-        body.fade.value = upright ? fade * UPRIGHT.fade : fade;
-        body.update(time);
-      });
+        satellite.group.scale.setScalar(SATELLITE.size * halfH * fit);
+        satellite.fade.value = upright ? UPRIGHT.fade : 1;
+        satellite.update(time);
+      }
       meteor.update(time, aspect, viewHeight);
     },
-    resize(a, height, pixelRatio) {
+    resize(a, height, pixelRatio, margin) {
       aspect = a;
       viewHeight = height;
       fit = Math.min(1, Math.max(0.62, a / 1.1));
       reach = Math.min(1, a / 1.2);
+      // the width of the satellite against the width of the view
+      const span = (SATELLITE.size * fit) / a;
+      if (a < UPRIGHT.aspect) home = small ? UPRIGHT.phone : UPRIGHT.satellite;
+      else home = margin >= span * SATELLITE.margin.room ? [margin - 1, SATELLITE.margin.y] : SATELLITE.at;
       camera.aspect = a;
       camera.updateProjectionMatrix();
       // sizes given in pixels grow a little with the view, so a large screen is not all specks
@@ -179,7 +177,7 @@ export function createCosmos(small: boolean): Cosmos {
       sky.dispose();
       stars.dispose();
       planet.dispose();
-      solids.forEach((s) => s.body.dispose());
+      satellite.dispose();
       meteor.dispose();
     },
   };

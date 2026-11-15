@@ -73,6 +73,8 @@ export function initScene(canvas: HTMLCanvasElement): void {
 
   /* layer 1: cosmos */
   const cosmos = createCosmos(small);
+  // the column the page is set in: what is to the left of it is empty sky
+  const column = document.querySelector('.wrap');
 
   function applyTier(): void {
     const cfg = TIERS[tier];
@@ -83,7 +85,8 @@ export function initScene(canvas: HTMLCanvasElement): void {
       post.setSize(bufferSize.x, bufferSize.y);
     }
     // sizes that the cosmos gives in pixels depend on the pixel ratio of the step
-    cosmos.resize(width / height, height, renderer.getPixelRatio());
+    const margin = column ? Math.max(0, column.getBoundingClientRect().left) / width : 0;
+    cosmos.resize(width / height, height, renderer.getPixelRatio(), margin);
   }
   applyTier();
 
