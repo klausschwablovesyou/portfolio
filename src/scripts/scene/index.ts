@@ -14,11 +14,14 @@ import { createCosmos } from './cosmos';
 import { createGraph, type GraphLabel } from './graph';
 import { createPost } from './post';
 import { createShuriken } from './shuriken';
+import { createTerrain } from './terrain';
 
 /**
  * One fixed full-window canvas and one renderer, drawing two layers:
  *
- *  1. the cosmos: deep space with a camera of its own; scrolling moves the star field past it;
+ *  1. the backdrop, with a camera of its own: the cosmos (scrolling moves the star field past it),
+ *     except behind the contact section, which has the lit mountain landscape of terrain.ts;
+ *     the two meet at the top edge of that section, hidden behind the paper ridge above it;
  *  2. the anchored objects (stack graph, contact emblem), with a camera that looks straight
  *     ahead, so each object can follow an empty HTML element (data-anchor) and the 3D layout
  *     follows the responsive HTML layout.
@@ -33,6 +36,12 @@ import { createShuriken } from './shuriken';
  */
 const INK = new Color('#0F262D');
 const CAMERA_Z = 16;
+const SCROLL_TO_WORLD = 0.02;
+
+const smooth = (v: number) => {
+  const k = Math.min(1, Math.max(0, v));
+  return k * k * (3 - 2 * k);
+};
 
 export function initScene(canvas: HTMLCanvasElement): void {
   let renderer: WebGLRenderer;
@@ -75,6 +84,9 @@ export function initScene(canvas: HTMLCanvasElement): void {
   const cosmos = createCosmos(small);
   // the column the page is set in: what is to the left of it is empty sky
   const column = document.querySelector('.wrap');
+  /* layer 1, behind the contact section: the landscape */
+  const landSection = document.querySelector('#contact');
+  const terrain = landSection ? createTerrain(small ? 64 : 96, width / height, small ? 14 : 22) : null;
 
   function applyTier(): void {
     const cfg = TIERS[tier];
@@ -87,8 +99,11 @@ export function initScene(canvas: HTMLCanvasElement): void {
     // sizes that the cosmos gives in pixels depend on the pixel ratio of the step
     const margin = column ? Math.max(0, column.getBoundingClientRect().left) / width : 0;
     cosmos.resize(width / height, height, renderer.getPixelRatio(), margin);
+    terrain?.resize(width / height);
   }
   applyTier();
+  // compile the landscape shaders ahead, so reaching the contact section does not stall a frame
+  if (terrain) renderer.compileAsync(terrain.scene, terrain.camera).catch(() => {});
 
   /* layer 2: anchored objects */
   const scene = new Scene();
@@ -195,6 +210,41 @@ export function initScene(canvas: HTMLCanvasElement): void {
     return Math.min(1, Math.max(0, (height * 0.4 - centre) / (height * 0.55)));
   }
 
+  /** The landscape camera: high while the contact section comes in, low at the very end of the page. */
+  function riseAmount(y: number): number {
+    const max = Math.max(1, root.scrollHeight - height);
+    return 1 - smooth((y - (max - height * 1.5)) / (height * 1.1));
+  }
+
+  /*
+   * Where the landscape starts on screen, in CSS pixels from the top: 0 = it fills the view,
+   * height = it is not on screen. Above that line the cosmos is drawn, below it the landscape.
+   */
+  let landTop = height;
+
+  function clipBelow(top: number, on: boolean): void {
+    const rt = renderer.getRenderTarget();
+    if (rt) {
+      rt.scissor.set(0, 0, rt.width, Math.ceil(((height - top) / height) * rt.height));
+      rt.scissorTest = on;
+      renderer.setRenderTarget(rt); // a target's scissor is applied when it is bound
+    } else {
+      renderer.setScissor(0, 0, width, height - top);
+      renderer.setScissorTest(on);
+    }
+  }
+
+  function drawBackdrop(): void {
+    if (landTop > 0) renderer.render(cosmos.scene, cosmos.camera);
+    if (!terrain || landTop >= height) return;
+    if (landTop > 0) {
+      clipBelow(landTop, true);
+      renderer.clear(true, true, false);
+    }
+    renderer.render(terrain.scene, terrain.camera);
+    if (landTop > 0) clipBelow(landTop, false);
+  }
+
   // the camera follows the scroll position with a little inertia
   let scrollEase = window.scrollY;
   // frame-time watch for stepping the quality down
@@ -241,6 +291,15 @@ export function initScene(canvas: HTMLCanvasElement): void {
     const filmed = !!post && TIERS[tier].post;
     cosmos.update({ screens: scrollEase / height, time, intro, pointer: p, direct: !filmed });
 
+    landTop = height;
+    if (terrain && landSection) {
+      const r = landSection.getBoundingClientRect();
+      if (r.top < height && r.bottom > 0) {
+        landTop = Math.max(0, Math.round(r.top));
+        terrain.update({ scroll: scrollEase * SCROLL_TO_WORLD, time, rise: riseAmount(scrollEase), intro, pointer: p });
+      }
+    }
+
     // slight camera drift with the pointer; anchors include the camera offset, so the
     // anchored objects stay on their elements
     camera.position.x = p.x * 0.3;
@@ -277,7 +336,7 @@ export function initScene(canvas: HTMLCanvasElement): void {
     if (post && filmed) {
       post.render(
         {
-          backdrop: () => renderer.render(cosmos.scene, cosmos.camera),
+          backdrop: drawBackdrop,
           overlay: () => renderer.render(scene, camera),
         },
         { time: still ? 0 : time },
@@ -287,7 +346,7 @@ export function initScene(canvas: HTMLCanvasElement): void {
       renderer.setRenderTarget(null);
       renderer.setClearColor(INK, 1);
       renderer.clear();
-      renderer.render(cosmos.scene, cosmos.camera);
+      drawBackdrop();
       renderer.clearDepth();
       renderer.render(scene, camera);
     }
