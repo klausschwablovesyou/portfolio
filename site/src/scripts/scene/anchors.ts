@@ -1,6 +1,14 @@
 import type { PerspectiveCamera } from 'three';
 
-/** A DOM element's screen rectangle, expressed in world units on a plane at depth z. */
+/** The rectangle of a DOM element in document coordinates (it does not change while scrolling). */
+export interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** An element's screen rectangle, expressed in world units on the plane z = 0. */
 export interface WorldRect {
   x: number;
   y: number;
@@ -8,31 +16,64 @@ export interface WorldRect {
   height: number;
   /** element is within one viewport of the screen */
   near: boolean;
-  rect: DOMRect;
+  /** the same rectangle on screen, in CSS pixels */
+  left: number;
+  top: number;
+  pxWidth: number;
+  pxHeight: number;
+}
+
+export const emptyBox = (): Box => ({ left: 0, top: 0, width: 0, height: 0 });
+
+export const emptyWorldRect = (): WorldRect => ({
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+  near: false,
+  left: 0,
+  top: 0,
+  pxWidth: 0,
+  pxHeight: 0,
+});
+
+/**
+ * Reads an element's rectangle. This asks the browser for layout, so it is called when the
+ * layout may have changed (resize, fonts, document height), never in the render loop.
+ */
+export function measureBox(el: Element, out: Box): Box {
+  const r = el.getBoundingClientRect();
+  out.left = r.left + window.scrollX;
+  out.top = r.top + window.scrollY;
+  out.width = r.width;
+  out.height = r.height;
+  return out;
 }
 
 /**
- * Converts an anchor element's screen rectangle into a world-space position for a camera
- * that looks straight down -z. The 3D objects follow the responsive HTML layout this way,
- * so the scene needs no breakpoints of its own.
+ * Converts a measured box into a world-space rectangle for a camera that looks straight down
+ * -z, at the given scroll position. The 3D objects follow the responsive HTML layout this way,
+ * so the scene needs no breakpoints of its own, and nothing is read from the DOM per frame.
  */
 export function anchorToWorld(
-  el: Element,
+  box: Box,
+  scrollY: number,
   camera: PerspectiveCamera,
   viewWidth: number,
   viewHeight: number,
-  z = 0,
+  out: WorldRect,
 ): WorldRect {
-  const rect = el.getBoundingClientRect();
-  const distance = camera.position.z - z;
-  const worldHeight = 2 * Math.tan((camera.fov * Math.PI) / 360) * distance;
+  const top = box.top - scrollY;
+  const worldHeight = 2 * Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
   const perPx = worldHeight / viewHeight;
-  return {
-    x: camera.position.x + (rect.left + rect.width / 2 - viewWidth / 2) * perPx,
-    y: camera.position.y - (rect.top + rect.height / 2 - viewHeight / 2) * perPx,
-    width: rect.width * perPx,
-    height: rect.height * perPx,
-    near: rect.bottom > -viewHeight && rect.top < viewHeight * 2,
-    rect,
-  };
+  out.x = camera.position.x + (box.left + box.width / 2 - viewWidth / 2) * perPx;
+  out.y = camera.position.y - (top + box.height / 2 - viewHeight / 2) * perPx;
+  out.width = box.width * perPx;
+  out.height = box.height * perPx;
+  out.near = top + box.height > -viewHeight && top < viewHeight * 2;
+  out.left = box.left;
+  out.top = top;
+  out.pxWidth = box.width;
+  out.pxHeight = box.height;
+  return out;
 }

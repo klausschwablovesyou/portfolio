@@ -15,7 +15,7 @@ export interface Shared {
   uTravel: { value: Vector2 };
   /** device pixels per CSS pixel, times the size of the view against a 900 px tall one */
   uPx: { value: number };
-  /** towards the light, in view space: up, to the left and behind, so everything is lit from the back */
+  /** towards the sun, in view space (see ../sun.ts): low, to the right and behind, so everything is backlit */
   uLight: { value: Vector3 };
   /** x = gain, y = exponent of `emit` below */
   uGain: { value: Vector2 };

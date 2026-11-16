@@ -1,4 +1,5 @@
-import { Group, PerspectiveCamera, Scene, Vector2, Vector3 } from 'three';
+import { Group, PerspectiveCamera, Scene, Vector2, type WebGLRenderer } from 'three';
+import { SUN } from '../sun';
 import { createMeteor } from './meteor';
 import { createPlanet } from './planet';
 import { drawOrder, FOV, HALF_VIEW, wrap, type Shared } from './shared';
@@ -30,6 +31,8 @@ export interface Cosmos {
   update(state: {
     /** scroll position in view heights */
     screens: number;
+    /** scroll position as a part of the whole page, 0 at the top, 1 at the end */
+    progress: number;
     time: number;
     /** 0 → 1 while the opening shot settles */
     intro: number;
@@ -37,9 +40,23 @@ export interface Cosmos {
     /** the picture goes straight to the canvas instead of through post.ts */
     direct: boolean;
   }): void;
-  /** `margin`: the free strip to the left of the page column, as a part of the view width */
-  resize(aspect: number, viewHeight: number, pixelRatio: number, margin: number): void;
+  /** every frame, before the scene is drawn: updates the small off-screen buffers */
+  prerender(renderer: WebGLRenderer): void;
+  resize(aspect: number, viewHeight: number, pixelRatio: number, layout: Layout): void;
   dispose(): void;
+}
+
+/** What the scene has to know about the page to keep out of its way. */
+export interface Layout {
+  /** the free strip to the left of the page column, as a part of the view width */
+  margin: number;
+  /**
+   * Where the band of numbers that closes the first screen begins while the page is at the top,
+   * as a view height (1 = top edge, -1 = bottom edge; below -1 it starts under the fold)
+   */
+  band: number;
+  /** the free spot beside the buttons of the first screen, x and y in the view, or null */
+  spot: [number, number] | null;
 }
 
 /** depth that scrolls at the speed of the page; everything is further away than this */
@@ -50,30 +67,34 @@ const INTRO_DROP = 9;
 const LAP = 1.3;
 
 /**
- * Where things are. `at` is the place in the view while the page is at the top: x and y from
- * -1 to 1 (left to right, bottom to top), beyond that it is outside. `size` is the radius
- * against half the view height.
+ * Where things are, in the view: x and y from -1 to 1 (left to right, bottom to top), beyond
+ * that outside. `size` is the radius against half the view height.
+ *
+ * The planet keeps to the right edge, its limb just inside the view. On the first screen it
+ * rests on the band of numbers that closes that screen (wherever the layout puts that band:
+ * on a low screen it starts under the fold, and so does most of the planet); by the end of
+ * the page it has climbed into the upper right, above the landscape. Its height follows
+ * the reading progress and not the scroll distance, so it ends in the same place on a page of
+ * any length.
  */
-const PLANET = { depth: 150, size: 0.18, at: [0.82, -0.88] };
+const PLANET = { depth: 190, size: 0.18, inset: 0.055, from: -0.5, to: 0.5, above: 0.02 };
 
 /*
- * The planet has the right edge, the satellite the left side, low in the view. The text of the
- * page is set to the left as well, so there are two places for it. Where the page column leaves
- * a margin that holds it with room to spare (a wide screen), it floats in the middle of that
- * margin. Otherwise it is at `at`: beside the buttons under the copy of the first screen, the
- * one spot of the left half that stays free on a laptop.
- *
- * It is nearer than the planet, so it rises faster as the page scrolls, leaves at the top and
- * comes in again from below.
+ * The satellite is nearer, so it rises faster as the page scrolls, leaves at the top and comes
+ * in again from below. Where the page column leaves a margin that holds it with room to spare
+ * (a wide screen), it floats in the middle of that margin. Otherwise it starts beside the
+ * buttons under the copy of the first screen, the one spot of the left half that is free; the
+ * page says where that is (`Layout.spot`), and `at` is only the fallback.
  */
-const SATELLITE = { depth: 64, size: 0.16, at: [-0.27, -0.8], margin: { y: -0.62, room: 1.5 } };
+const SATELLITE = { depth: 64, size: 0.16, at: [-0.17, -0.5], margin: { y: -0.5, room: 1.5 } };
 
 /*
  * An upright screen has no free side: the text runs the whole width. There the planet starts
- * below the view and comes up later, and the satellite is fainter and keeps to the gap between
- * the buttons and the graph, which is lower on a phone, where the copy takes more of the height.
+ * below the view and comes up later, cut by the right edge, and the satellite is fainter and
+ * keeps to the gap between the buttons and the graph, which is lower on a phone, where the copy
+ * takes more of the height.
  */
-const UPRIGHT = { below: 1.06, aspect: 0.9, satellite: [-0.66, -0.3], phone: [-0.66, -0.5], fade: 0.7 };
+const UPRIGHT = { below: 1.06, to: 0.2, x: 0.9, aspect: 0.9, satellite: [-0.66, -0.3], phone: [-0.66, -0.5], fade: 0.7 };
 
 export function createCosmos(small: boolean): Cosmos {
   const scene = new Scene();
@@ -84,11 +105,11 @@ export function createCosmos(small: boolean): Cosmos {
     uTime: { value: 0 },
     uTravel: { value: new Vector2() },
     uPx: { value: 1 },
-    uLight: { value: new Vector3(-0.7, 0.45, -0.55).normalize() },
+    uLight: { value: SUN.clone() },
     uGain: { value: new Vector2(1, 1) },
   };
 
-  const sky = createSky(shared, small ? 3 : 4);
+  const sky = createSky(shared);
   const stars = createStars(shared);
   const planet = createPlanet(shared);
   const satellite = createSatellite(shared);
@@ -111,11 +132,13 @@ export function createCosmos(small: boolean): Cosmos {
   let reach = 1;
   /** where the satellite is while the page is at the top, as `at` above */
   let home = SATELLITE.at;
+  /** where the planet is while the page is at the top */
+  let planetFrom = PLANET.from;
 
   return {
     scene,
     camera,
-    update({ screens, time, intro, pointer, direct }) {
+    update({ screens, progress, time, intro, pointer, direct }) {
       shared.uTime.value = time;
       shared.uGain.value.set(direct ? 0.68 : 1, direct ? 1.2 : 1);
       sky.direct(direct);
@@ -127,7 +150,8 @@ export function createCosmos(small: boolean): Cosmos {
       // opening shot: the camera comes down from above and eases to rest, so the sky rises into place
       const drop = (1 - intro) * (1 - intro) * INTRO_DROP;
       const tx = floatX + pointer.x * 0.9;
-      const ty = -screens * 2 * HALF_VIEW * REF + floatY + pointer.y * 0.5 + drop;
+      const drift = floatY + pointer.y * 0.5 + drop;
+      const ty = -screens * 2 * HALF_VIEW * REF + drift;
       shared.uTravel.value.set(tx, ty);
 
       // a hand-held camera never points perfectly still
@@ -139,9 +163,12 @@ export function createCosmos(small: boolean): Cosmos {
       const upright = aspect < UPRIGHT.aspect;
       {
         const halfH = HALF_VIEW * PLANET.depth;
-        const y = upright ? -UPRIGHT.below : PLANET.at[1];
-        planet.group.position.set(PLANET.at[0] * halfH * aspect - tx, y * halfH - ty, -PLANET.depth);
-        planet.group.scale.setScalar(PLANET.size * halfH * fit);
+        const radius = PLANET.size * fit;
+        const x = upright ? UPRIGHT.x : 1 - radius / aspect - PLANET.inset;
+        const from = upright ? -UPRIGHT.below : planetFrom;
+        const y = from + ((upright ? UPRIGHT.to : PLANET.to) - from) * progress;
+        planet.group.position.set(x * halfH * aspect - tx, y * halfH - drift, -PLANET.depth);
+        planet.group.scale.setScalar(radius * halfH);
         planet.update(time);
       }
       {
@@ -157,7 +184,10 @@ export function createCosmos(small: boolean): Cosmos {
       }
       meteor.update(time, aspect, viewHeight);
     },
-    resize(a, height, pixelRatio, margin) {
+    prerender(renderer) {
+      sky.prerender(renderer);
+    },
+    resize(a, height, pixelRatio, { margin, band, spot }) {
       aspect = a;
       viewHeight = height;
       fit = Math.min(1, Math.max(0.62, a / 1.1));
@@ -165,7 +195,8 @@ export function createCosmos(small: boolean): Cosmos {
       // the width of the satellite against the width of the view
       const span = (SATELLITE.size * fit) / a;
       if (a < UPRIGHT.aspect) home = small ? UPRIGHT.phone : UPRIGHT.satellite;
-      else home = margin >= span * SATELLITE.margin.room ? [margin - 1, SATELLITE.margin.y] : SATELLITE.at;
+      else home = margin >= span * SATELLITE.margin.room ? [margin - 1, SATELLITE.margin.y] : (spot ?? SATELLITE.at);
+      planetFrom = Math.min(-0.3, Math.max(-1.2, band + PLANET.size * fit + PLANET.above));
       camera.aspect = a;
       camera.updateProjectionMatrix();
       // sizes given in pixels grow a little with the view, so a large screen is not all specks

@@ -8,8 +8,9 @@ import { emit, HALF_VIEW, rng, type Shared } from './shared';
  *
  * The field is endless. A star is stored as a place in a box whose size grows with its depth
  * (a little larger than the view there) and wraps around inside it; it re-enters outside the
- * view. Most stars are small and dim, a few are bright with a halo and four thin spikes, and
- * about a third sit in loose clusters, because evenly scattered stars look like noise.
+ * view. Most stars are small and dim, a few are bright with a soft halo, a handful carry thin
+ * diffraction spikes (each turned a little differently, so none looks stamped), and about a
+ * third sit in loose clusters, because evenly scattered stars look like noise.
  */
 export interface Stars {
   points: Points;
@@ -24,6 +25,8 @@ const MARGIN = 1.3;
 /** stars drawn per unit of aspect ratio, so a phone is as densely starred as a wide screen */
 const PER_ASPECT = 700;
 const MAX = 1800;
+/** stars with diffraction spikes */
+const HEROES = 5;
 
 const TINTS = ['#DDEFF2', '#DDEFF2', '#DDEFF2', '#9FD8E2', '#9FD8E2', '#B9CEFF', '#FFD79A'].map(
   (hex) => new Color(hex),
@@ -31,7 +34,7 @@ const TINTS = ['#DDEFF2', '#DDEFF2', '#DDEFF2', '#9FD8E2', '#9FD8E2', '#B9CEFF',
 
 const vertex = /* glsl */ `
   attribute vec4 aStar; // size in px, light, twinkle phase, twinkle rate
-  attribute vec4 aTint; // colour, 1 for a bright star
+  attribute vec4 aTint; // colour; 1 for a bright star, 2 for one with spikes
   uniform vec2 uTravel;
   uniform vec2 uSpan;
   uniform float uTime;
@@ -39,6 +42,7 @@ const vertex = /* glsl */ `
   varying vec3 vColor;
   varying float vBright;
   varying float vHalf;
+  varying vec2 vTurn;
   void main() {
     float depth = position.z;
     vec2 period = uSpan * depth;
@@ -51,11 +55,14 @@ const vertex = /* glsl */ `
     float shown = max(px, 2.0);
     gl_PointSize = shown;
 
-    float twinkle = 1.0 + mix(0.3, 0.1, aTint.w) * sin(uTime * aStar.w + aStar.z);
+    float twinkle = 1.0 + mix(0.16, 0.05, min(aTint.w, 1.0)) * sin(uTime * aStar.w + aStar.z);
     float light = aStar.y * twinkle * (px * px) / (shown * shown) * mix(0.55, 1.0, near);
     vColor = aTint.rgb * light;
     vBright = aTint.w;
     vHalf = shown * 0.5 / uPx;
+    // the spikes of each star are turned by its own small angle
+    float turn = 0.2 + 0.5 * fract(aStar.z);
+    vTurn = vec2(cos(turn), sin(turn));
   }
 `;
 
@@ -63,18 +70,23 @@ const fragment = /* glsl */ `
   varying vec3 vColor;
   varying float vBright;
   varying float vHalf;
+  varying vec2 vTurn;
   ${emit}
   void main() {
     vec2 c = gl_PointCoord * 2.0 - 1.0;
     float r2 = dot(c, c);
     float light;
     if (vBright > 0.5) {
-      // small hard core, soft halo, four thin spikes that fade out before the edge of the sprite
-      vec2 q = abs(c) * vHalf;
-      float core = exp(-dot(q, q) * 0.6);
-      float halo = exp(-r2 * 7.0) * 0.1;
-      float spike = exp(-min(q.x, q.y) * 1.5) * exp(-max(q.x, q.y) * 4.5 / vHalf) * 0.38;
-      light = core + (halo + spike) * (1.0 - smoothstep(0.7, 1.0, max(abs(c.x), abs(c.y))));
+      // a small hard core in a soft halo that fades out before the edge of the sprite
+      vec2 q = c * vHalf; // CSS pixels from the centre
+      float d2 = dot(q, q);
+      float edge = 1.0 - smoothstep(0.55, 1.0, sqrt(r2));
+      light = exp(-d2 * 0.8) + edge * 0.07 / (1.0 + d2 * 0.3);
+      if (vBright > 1.5) {
+        // thin diffraction spikes, off the axes
+        vec2 t = abs(vec2(q.x * vTurn.x - q.y * vTurn.y, q.x * vTurn.y + q.y * vTurn.x));
+        light += edge * exp(-min(t.x, t.y) * 2.4) * exp(-max(t.x, t.y) * 3.6 / vHalf) * 0.2;
+      }
     } else {
       light = exp(-r2 * 4.5);
     }
@@ -107,13 +119,15 @@ export function createStars(shared: Shared): Stars {
     }
     position.set([x - Math.floor(x), y - Math.floor(y), depth], i * 3);
 
-    const bright = rand() < 0.022;
-    const size = bright ? 20 + rand() * 16 : 2.2 + 3.4 * rand() ** 3;
-    const light = bright ? 0.8 + rand() * 0.6 : 0.1 + 0.75 * rand() ** 2.4;
+    // the first few stars are the ones with spikes: they are drawn at every aspect ratio
+    const hero = i < HEROES;
+    const bright = hero || rand() < 0.014;
+    const size = hero ? 30 + rand() * 12 : bright ? 13 + rand() * 9 : 2.2 + 3.2 * rand() ** 3;
+    const light = hero ? 1.0 + rand() * 0.5 : bright ? 0.7 + rand() * 0.5 : 0.09 + 0.75 * rand() ** 2.6;
     star.set([size, light, rand() * Math.PI * 2, 0.5 + rand() * 1.9], i * 4);
 
     const c = TINTS[Math.floor(rand() * TINTS.length)];
-    tint.set([c.r, c.g, c.b, bright ? 1 : 0], i * 4);
+    tint.set([c.r, c.g, c.b, hero ? 2 : bright ? 1 : 0], i * 4);
   }
 
   const geometry = new BufferGeometry();

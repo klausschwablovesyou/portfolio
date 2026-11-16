@@ -1,26 +1,29 @@
 import {
-  BufferGeometry,
   Color,
-  Float32BufferAttribute,
+  DataTexture,
+  DoubleSide,
   Group,
-  LineSegments,
+  LinearFilter,
   Mesh,
-  Points,
+  RedFormat,
+  RingGeometry,
   ShaderMaterial,
   SphereGeometry,
-  type Material,
+  UnsignedByteType,
+  Vector3,
 } from 'three';
-import { circles, dotMaterial, lineMaterial, type Fade } from './kit';
-import type { Shared } from './shared';
+import { FILL_COLOR, SUN_COLOR } from '../sun';
+import { rng, type Shared } from './shared';
 
 /**
- * The one landmark of the sky: a dark planet drawn like a technical drawing. The body is a
- * plain dark disc with a thin crescent of light on the side of the sun, so it hides the stars
- * behind it; a graticule turns with it, a set of thin rings lies around its equator, and two
- * moons run on drawn orbits.
+ * The one landmark of the sky: a gas giant with rings, far away and backlit. The sun is low
+ * behind it on the right, so the globe shows a thin lit crescent with a soft terminator and an
+ * atmosphere that glows along the limb; the night side is almost the colour of the sky. The
+ * rings are a real disc with bands and gaps that scatters the light forward; the planet's
+ * shadow falls across them and theirs across the planet. Two small moons run round it.
  *
- * Built with radius 1 around the origin; cosmos/index.ts places and scales it. It is far away,
- * so it rises only about half a screen while the whole page scrolls by.
+ * Built with radius 1 around the origin; cosmos/index.ts places and scales it. It is small on
+ * screen (about 80 px in radius), so every pixel of it can afford a careful shader.
  */
 export interface Planet {
   group: Group;
@@ -28,150 +31,305 @@ export interface Planet {
   dispose(): void;
 }
 
-const bodyVertex = /* glsl */ `
+/** inner and outer radius of the rings, in planet radii */
+const RING = [1.28, 2.32];
+
+const noise3 = /* glsl */ `
+  float hash31(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.zyx + 31.32);
+    return fract((p.x + p.y) * p.z);
+  }
+  // value noise, 0..1
+  float noise3(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = mix(mix(hash31(i), hash31(i + vec3(1, 0, 0)), f.x), mix(hash31(i + vec3(0, 1, 0)), hash31(i + vec3(1, 1, 0)), f.x), f.y);
+    float b = mix(mix(hash31(i + vec3(0, 0, 1)), hash31(i + vec3(1, 0, 1)), f.x), mix(hash31(i + vec3(0, 1, 1)), hash31(i + vec3(1, 1, 1)), f.x), f.y);
+    return mix(a, b, f.z);
+  }
+`;
+
+const globeVertex = /* glsl */ `
+  uniform float uSpin;
   varying vec3 vN;
   varying vec3 vV;
+  varying vec3 vFrame; // on the unit sphere, in the frame the rings lie in
+  varying vec3 vBody; // the same point on the turning body
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     vN = normalMatrix * normal;
     vV = -mv.xyz;
+    vFrame = position;
+    float c = cos(uSpin);
+    float s = sin(uSpin);
+    vBody = vec3(c * position.x - s * position.z, position.y, s * position.x + c * position.z);
     gl_Position = projectionMatrix * mv;
   }
 `;
 
-/* Night side nearly the colour of the sky; the day side shows only as a crescent along the limb. */
-const bodyFragment = /* glsl */ `
-  uniform vec3 uNight;
-  uniform vec3 uDay;
+const globeFragment = /* glsl */ `
+  uniform vec3 uLight; // towards the sun, view space
+  uniform vec3 uLightFrame; // the same, in the frame of the rings
+  uniform vec3 uSun;
+  uniform vec3 uFill;
+  uniform vec3 uDeep;
+  uniform vec3 uPale;
+  uniform vec3 uWarm;
   uniform vec3 uAir;
-  uniform vec3 uLight;
+  uniform sampler2D tRing;
+  uniform vec2 uRing;
   varying vec3 vN;
   varying vec3 vV;
+  varying vec3 vFrame;
+  varying vec3 vBody;
+  ${noise3}
   void main() {
     vec3 n = normalize(vN);
     vec3 v = normalize(vV);
-    float day = smoothstep(-0.1, 0.45, dot(n, uLight));
-    float limb = pow(1.0 - max(dot(n, v), 0.0), 2.4);
-    vec3 col = mix(uNight, uDay, day * (0.3 + 0.7 * limb));
-    // air: a thin bright line along the lit edge, a trace of it all the way round
-    col += uAir * limb * (0.035 + 0.42 * day);
+
+    // bands along the latitudes, bent by a little turbulence
+    float turb = (noise3(vBody * 3.1) - 0.5) * 0.16 + (noise3(vBody * 8.0 + 4.0) - 0.5) * 0.05;
+    float lat = vBody.y + turb;
+    float wide = 0.5 + 0.5 * sin(lat * 15.0 + sin(lat * 6.0) * 1.4);
+    float fine = 0.5 + 0.5 * sin(lat * 46.0 + 1.3);
+    float tone = mix(wide, fine, 0.22);
+    vec3 albedo = mix(uDeep, uPale, tone);
+    albedo = mix(albedo, uWarm, smoothstep(0.6, 0.95, wide) * (1.0 - abs(vBody.y)) * 0.3);
+
+    float ndl = dot(n, uLight);
+    float mu = max(dot(n, v), 0.0);
+    // a soft terminator, and the day side a little darker towards its own limb
+    float day = smoothstep(-0.14, 0.34, ndl);
+    vec3 col = albedo * uSun * day * (0.3 + 0.7 * pow(max(ndl, 0.0), 0.55));
+
+    // the rings' shadow: from this point towards the sun, does the ray cross the ring plane?
+    if (uLightFrame.y * vFrame.y < 0.0) {
+      float t = -vFrame.y / uLightFrame.y;
+      float r = length((vFrame + uLightFrame * t).xz);
+      float k = (r - uRing.x) / (uRing.y - uRing.x);
+      if (k > 0.0 && k < 1.0) col *= 1.0 - 0.7 * texture2D(tRing, vec2(k, 0.5)).r;
+    }
+
+    // night side: almost the sky, with a trace of the bands in the sky's own light
+    col += albedo * uFill * 0.05 * (0.4 + 0.6 * mu);
+
+    // air: a thin bright line along the lit limb, reaching a little past the terminator,
+    // and a hair of it all the way round
+    float limb = pow(1.0 - mu, 2.6);
+    float reach = smoothstep(-0.6, 0.25, ndl);
+    col += uAir * limb * (0.045 + 1.5 * reach * reach);
+
     gl_FragColor = vec4(col, 1.0);
     #include <colorspace_fragment>
   }
 `;
 
-const BLUEPRINT = new Color('#A9CDD5');
-const AMBER = new Color('#F2B33D');
-const WHITE = new Color('#F4F8F7');
+const ringVertex = /* glsl */ `
+  varying vec3 vFrame;
+  varying vec3 vV;
+  void main() {
+    vFrame = position;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vV = -mv.xyz;
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const ringFragment = /* glsl */ `
+  uniform vec3 uLight;
+  uniform vec3 uLightFrame;
+  uniform vec3 uSun;
+  uniform vec3 uSand;
+  uniform vec3 uCool;
+  uniform sampler2D tRing;
+  uniform vec2 uRing;
+  varying vec3 vFrame;
+  varying vec3 vV;
+  void main() {
+    float r = length(vFrame.xz);
+    float k = (r - uRing.x) / (uRing.y - uRing.x);
+    float density = texture2D(tRing, vec2(k, 0.5)).r;
+    if (density < 0.004) discard;
+
+    // the planet's shadow: how close does the ray towards the sun pass the centre of the globe?
+    float along = dot(vFrame, uLightFrame);
+    float miss = sqrt(max(dot(vFrame, vFrame) - along * along, 0.0));
+    float shadow = along < 0.0 ? smoothstep(0.93, 1.03, miss) : 1.0;
+
+    // dust scatters forward: the thin parts glow when the sun is behind them, the thick parts
+    // block more than they pass
+    vec3 v = normalize(vV);
+    float forward = pow(max(dot(v, -uLight) * 0.5 + 0.5, 0.0), 2.0);
+    float through = density * exp(-density * 1.5) * 1.9;
+    vec3 tint = mix(uSand, uCool, smoothstep(0.55, 1.0, k) * 0.5);
+    vec3 col = tint * uSun * (through * (0.35 + 1.1 * forward) + density * 0.05) * shadow;
+
+    gl_FragColor = vec4(col, density * 0.82);
+    #include <colorspace_fragment>
+  }
+`;
+
+const moonFragment = /* glsl */ `
+  uniform vec3 uLight;
+  uniform vec3 uSun;
+  uniform vec3 uFill;
+  uniform vec3 uRock;
+  varying vec3 vN;
+  varying vec3 vV;
+  varying vec3 vFrame;
+  varying vec3 vBody;
+  void main() {
+    vec3 n = normalize(vN);
+    float ndl = dot(n, uLight);
+    vec3 col = uRock * (uSun * smoothstep(-0.1, 0.35, ndl) * 0.9 + uFill * 0.2);
+    gl_FragColor = vec4(col, 1.0);
+    #include <colorspace_fragment>
+  }
+`;
+
+/** The rings from the inner edge (0) to the outer one (1): how much dust there is. */
+function ringProfile(): DataTexture {
+  const N = 512;
+  const rand = rng(19990121);
+  // smooth random curves from a few octaves of value noise
+  const lattice = Array.from({ length: 512 }, () => rand());
+  const curve = (x: number) => {
+    const i = Math.floor(x);
+    const f = x - i;
+    const s = f * f * (3 - 2 * f);
+    return lattice[i & 511] * (1 - s) + lattice[(i + 1) & 511] * s;
+  };
+  const step = (a: number, b: number, x: number) => {
+    const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return k * k * (3 - 2 * k);
+  };
+  const data = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    const k = i / (N - 1);
+    // broad bands, finer ringlets on them
+    let d = 0.5 + 0.5 * curve(k * 7 + 3);
+    d *= 0.6 + 0.4 * curve(k * 31 + 40);
+    d *= 0.82 + 0.18 * curve(k * 110 + 90);
+    // a faint inner ring, the bright main rings, one clear division, a thin gap further out
+    d *= 0.3 + 0.7 * step(0.16, 0.24, k);
+    d *= 1 - 0.94 * step(0.585, 0.6, k) * (1 - step(0.645, 0.66, k));
+    d *= 1 - 0.7 * step(0.835, 0.842, k) * (1 - step(0.852, 0.859, k));
+    d *= 0.75 + 0.25 * (1 - step(0.66, 1, k));
+    // soft edges
+    d *= step(0, 0.035, k) * (1 - step(0.955, 1, k));
+    data[i] = Math.round(Math.min(1, d) * 255);
+  }
+  const texture = new DataTexture(data, N, 1, RedFormat, UnsignedByteType);
+  texture.minFilter = texture.magFilter = LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
 
 export function createPlanet(shared: Shared): Planet {
   const group = new Group();
-  const fade: Fade = { value: 1 };
-  const geometries: BufferGeometry[] = [];
-  const materials: Material[] = [];
-  const keep = <T extends BufferGeometry>(g: T): T => (geometries.push(g), g);
-  const made = <T extends Material>(m: T): T => (materials.push(m), m);
 
   // the planet's own frame: y is its axis, the rings and orbits lie in the x–z plane.
-  // Tipped towards the camera and rolled, so the rings open into ellipses
+  // Tipped towards the camera and rolled, so the rings open into ellipses that climb to the
+  // right, away from the page column
   const frame = new Group();
-  frame.rotation.set(0.33, 0, -0.3);
+  frame.rotation.set(0.33, 0, 0.3);
   group.add(frame);
 
-  const body = new Mesh(
-    keep(new SphereGeometry(1, 72, 48)),
-    made(
-      new ShaderMaterial({
-        vertexShader: bodyVertex,
-        fragmentShader: bodyFragment,
-        // opaque, but sorted with the see-through things, so it is drawn after the stars and
-        // covers them, and before its own lines, which it hides where they pass behind it
-        transparent: true,
-        uniforms: {
-          uNight: { value: new Color('#0B1D23') },
-          uDay: { value: new Color('#256573') },
-          uAir: { value: new Color('#8FD3DE') },
-          uLight: shared.uLight,
-        },
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1,
-      }),
-    ),
-  );
-  body.renderOrder = 0;
+  // the frame is only rotated against the view, and the camera barely turns, so view space
+  // stands in for world space when the sun is brought into the frame of the rings
+  const toFrame = frame.quaternion.clone().invert();
 
-  // graticule: parallels every 30°, meridians every 30°, a hair above the surface
-  const R = 1.004;
-  const parallels = [-60, -30, 0, 30, 60].map((lat) => {
-    const a = (lat * Math.PI) / 180;
-    return { radius: Math.cos(a) * R, y: Math.sin(a) * R, strength: lat === 0 ? 1 : 0.6 };
+  const profile = ringProfile();
+  const lightFrame = new Vector3();
+  const light = {
+    uLight: shared.uLight,
+    uLightFrame: { value: lightFrame },
+    uSun: { value: SUN_COLOR.clone().multiplyScalar(1.5) },
+    uFill: { value: FILL_COLOR },
+  };
+  const ring = { tRing: { value: profile }, uRing: { value: RING } };
+
+  const sphere = new SphereGeometry(1, 64, 40);
+  const globeMaterial = new ShaderMaterial({
+    vertexShader: globeVertex,
+    fragmentShader: globeFragment,
+    // opaque, but sorted with the see-through things, so it is drawn after the stars and
+    // covers them, and before its own rings, which it hides where they pass behind it
+    transparent: true,
+    uniforms: {
+      ...light,
+      ...ring,
+      uSpin: { value: 0 },
+      uDeep: { value: new Color('#27485A') },
+      uPale: { value: new Color('#7FA9B8') },
+      uWarm: { value: new Color('#B9B49A') },
+      uAir: { value: new Color('#9FDCE8') },
+    },
   });
-  const grid = new Group();
-  const gridLine = made(lineMaterial(shared, fade, BLUEPRINT.clone().multiplyScalar(0.16), true));
-  grid.add(new LineSegments(keep(circles(parallels, 96)), gridLine));
-  const meridian = keep(circles([{ radius: R, strength: 0.6 }], 96));
-  for (let i = 0; i < 6; i++) {
-    const m = new LineSegments(meridian, gridLine);
-    // a circle around y, stood up through the poles, then turned to its longitude
-    m.rotation.set(Math.PI / 2, (i * Math.PI) / 6, 0, 'YXZ');
-    grid.add(m);
-  }
-
-  const globe = new Group();
-  globe.add(body, grid);
+  const globe = new Mesh(sphere, globeMaterial);
+  globe.renderOrder = 0;
   frame.add(globe);
 
-  // rings: a few thin lines of different strength, with gaps, one of them amber
-  const ringLine = made(lineMaterial(shared, fade, BLUEPRINT.clone().multiplyScalar(0.24), true));
-  const rings = [
-    [1.42, 0.45],
-    [1.5, 0.8],
-    [1.56, 0.55],
-    [1.7, 1],
-    [1.75, 0.7],
-    [1.93, 0.5],
-    [2.0, 0.9],
-    [2.06, 0.4],
-    [2.24, 0.6],
-  ].map(([radius, strength]) => ({ radius, strength }));
-  frame.add(new LineSegments(keep(circles(rings, 192)), ringLine));
-  const warmLine = made(lineMaterial(shared, fade, AMBER.clone().multiplyScalar(0.3), true));
-  frame.add(new LineSegments(keep(circles([{ radius: 1.84 }], 192)), warmLine));
+  // the rings: a flat disc in the plane of the equator
+  const disc = new RingGeometry(RING[0], RING[1], 160, 1);
+  disc.rotateX(-Math.PI / 2);
+  const ringMaterial = new ShaderMaterial({
+    vertexShader: ringVertex,
+    fragmentShader: ringFragment,
+    transparent: true,
+    depthWrite: false,
+    side: DoubleSide,
+    uniforms: {
+      ...light,
+      ...ring,
+      uSand: { value: new Color('#E2CFA8') },
+      uCool: { value: new Color('#A9C4CC') },
+    },
+  });
+  const rings = new Mesh(disc, ringMaterial);
+  rings.renderOrder = 1;
+  frame.add(rings);
 
-  // moons: each on its own slightly tilted orbit; the orbit is drawn, the moon is a dot on it
-  const one = keep(new BufferGeometry());
-  one.setAttribute('position', new Float32BufferAttribute([0, 0, 0], 3));
-  const orbitLine = made(lineMaterial(shared, fade, BLUEPRINT.clone().multiplyScalar(0.085), true));
+  // moons: each on its own slightly tilted orbit
+  const moonMaterial = new ShaderMaterial({
+    vertexShader: globeVertex,
+    fragmentShader: moonFragment,
+    transparent: true,
+    uniforms: { ...light, uSpin: { value: 0 }, uRock: { value: new Color('#8FA3A8') } },
+  });
   const moons = [
-    { radius: 2.9, tilt: 0.07, period: 80, phase: 0.9, color: WHITE, size: 5 },
-    { radius: 3.9, tilt: -0.05, period: 150, phase: 3.6, color: AMBER, size: 4.4 },
+    { radius: 2.75, tilt: 0.07, period: 80, phase: 2.2, size: 0.05 },
+    { radius: 3.4, tilt: -0.05, period: 150, phase: 5.4, size: 0.038 },
   ].map((m) => {
     const plane = new Group();
     plane.rotation.x = m.tilt;
     const arm = new Group();
-    const moon = new Points(one, made(dotMaterial(shared, fade, m.color.clone().multiplyScalar(0.9), m.size)));
+    const moon = new Mesh(sphere, moonMaterial);
+    moon.scale.setScalar(m.size);
     moon.position.x = m.radius;
+    moon.renderOrder = 1;
     arm.add(moon);
-    plane.add(new LineSegments(keep(circles([{ radius: m.radius }], 256)), orbitLine), arm);
+    plane.add(arm);
     frame.add(plane);
     return { arm, rate: (Math.PI * 2) / m.period, phase: m.phase };
-  });
-
-  // inside the group: the body first, then everything that may pass behind it
-  frame.traverse((o) => {
-    if (o !== body && !(o as { isGroup?: boolean }).isGroup) o.renderOrder = 1;
   });
 
   return {
     group,
     update(time) {
-      globe.rotation.y = time * 0.035;
+      globeMaterial.uniforms.uSpin.value = time * 0.035;
       for (const m of moons) m.arm.rotation.y = m.phase + time * m.rate;
+      lightFrame.copy(shared.uLight.value).applyQuaternion(toFrame);
     },
     dispose() {
-      geometries.forEach((g) => g.dispose());
-      materials.forEach((m) => m.dispose());
+      sphere.dispose();
+      disc.dispose();
+      profile.dispose();
+      globeMaterial.dispose();
+      ringMaterial.dispose();
+      moonMaterial.dispose();
     },
   };
 }

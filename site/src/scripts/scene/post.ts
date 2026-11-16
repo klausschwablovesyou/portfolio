@@ -15,20 +15,22 @@ import {
 } from 'three';
 
 /**
- * The film look. Instead of drawing straight to the screen, a frame goes through:
+ * The film look, kept quiet. Instead of drawing straight to the screen, a frame goes through:
  *
- *  1. the backdrop → float target;
+ *  1. the backdrop → float target (multisampled);
  *  2. the anchored objects are drawn on top;
- *  3. bloom: bright parts are blurred down and up a small pyramid and added back,
- *     plus a wide horizontal streak, like an anamorphic lens flare;
- *  4. final pass: slight colour fringing towards the corners, vignette, highlight roll-off,
- *     conversion to sRGB and film grain.
+ *  3. bloom: the few bright things are blurred down and up a small pyramid and added back.
+ *     The pyramid starts at a quarter of the resolution, which is all a soft glow needs;
+ *  4. final pass: a slight vignette, highlight roll-off, conversion to sRGB and a little grain
+ *     against banding.
  *
- * Everything is linear light in half-float targets until the last pass, so the dark teal
- * gradients do not band.
+ * Everything is linear light in half-float targets until the last pass, so the dark gradients
+ * do not band.
  */
 export interface PostState {
   time: number;
+  /** false on the lowest tier: the bloom pyramid is skipped */
+  bloom: boolean;
 }
 
 export interface Post {
@@ -37,6 +39,11 @@ export interface Post {
   /** size of the drawing buffer in pixels */
   setSize(width: number, height: number): void;
   render(draw: { backdrop(): void; overlay(): void }, state: PostState, clearColor: Color): void;
+  /**
+   * Runs `fn` with the composition target bound. A program depends on the colour space of the
+   * target it draws into, so shaders compiled ahead have to be compiled against this one.
+   */
+  withTarget(fn: () => void): void;
   dispose(): void;
 }
 
@@ -48,17 +55,21 @@ const fullscreenVertex = /* glsl */ `
   }
 `;
 
-/* Bloom: soft threshold, then a dual-filter pyramid (Marius Bjørge's "dual Kawase"). */
+/*
+ * Bloom: soft threshold, then a dual-filter pyramid (Marius Bjørge's "dual Kawase").
+ * The first step goes from the full picture to a quarter of it: four bilinear taps, each
+ * between four pixels, read every pixel of a 4×4 block once, so small stars do not flicker.
+ */
 const prefilterFragment = /* glsl */ `
   uniform sampler2D tColor;
-  uniform vec2 uHalfTexel;
+  uniform vec2 uTexel;
   uniform float uThreshold;
   uniform float uKnee;
   varying vec2 vUv;
   void main() {
-    vec3 c = texture2D(tColor, vUv + uHalfTexel).rgb + texture2D(tColor, vUv - uHalfTexel).rgb
-      + texture2D(tColor, vUv + vec2(uHalfTexel.x, -uHalfTexel.y)).rgb
-      + texture2D(tColor, vUv - vec2(uHalfTexel.x, -uHalfTexel.y)).rgb;
+    vec3 c = texture2D(tColor, vUv + uTexel).rgb + texture2D(tColor, vUv - uTexel).rgb
+      + texture2D(tColor, vUv + vec2(uTexel.x, -uTexel.y)).rgb
+      + texture2D(tColor, vUv - vec2(uTexel.x, -uTexel.y)).rgb;
     c *= 0.25;
     float l = max(c.r, max(c.g, c.b));
     float soft = clamp(l - uThreshold + uKnee, 0.0, 2.0 * uKnee);
@@ -101,38 +112,11 @@ const upFragment = /* glsl */ `
   }
 `;
 
-/* One horizontal blur step of the anamorphic streak. */
-const streakFragment = /* glsl */ `
-  uniform sampler2D tColor;
-  uniform float uStepX;
-  uniform float uCut;
-  varying vec2 vUv;
-  // only the hottest lights streak: the first step drops everything dimmer than uCut,
-  // scaling the colour as a whole so the streak keeps the hue of its light
-  vec3 tap(vec2 uv) {
-    vec3 c = texture2D(tColor, uv).rgb;
-    return c * smoothstep(uCut, uCut * 2.0 + 1e-4, max(c.r, max(c.g, c.b)));
-  }
-  void main() {
-    vec3 c = tap(vUv) * 0.2;
-    for (int i = 1; i <= 4; i++) {
-      float w = 0.4 * exp(-float(i * i) / 7.0) / 1.62;
-      vec2 o = vec2(uStepX * float(i), 0.0);
-      c += (tap(vUv + o) + tap(vUv - o)) * w;
-    }
-    gl_FragColor = vec4(c, 1.0);
-  }
-`;
-
 const finalFragment = /* glsl */ `
   uniform sampler2D tColor;
   uniform sampler2D tBloom;
-  uniform sampler2D tStreak;
   uniform vec2 uResolution;
-  uniform vec3 uStreakTint;
   uniform float uBloom;
-  uniform float uStreak;
-  uniform float uFringe;
   uniform float uVignette;
   uniform float uGrain;
   uniform float uTime;
@@ -150,20 +134,11 @@ const finalFragment = /* glsl */ `
     return min(c, vec3(knee)) + (1.0 - knee) * (1.0 - exp(-over));
   }
   void main() {
-    vec2 centre = vUv - 0.5;
-    float r2 = dot(centre, centre);
-    // colour fringing: red and blue are sampled a touch apart, growing towards the corners
-    vec2 fringe = centre * r2 * uFringe;
-    vec3 col = vec3(
-      texture2D(tColor, vUv - fringe).r,
-      texture2D(tColor, vUv).g,
-      texture2D(tColor, vUv + fringe).b
-    );
+    vec3 col = texture2D(tColor, vUv).rgb;
     col += texture2D(tBloom, vUv).rgb * uBloom;
-    col += texture2D(tStreak, vUv).rgb * uStreakTint * uStreak;
 
-    vec2 v = centre * vec2(mix(1.0, uResolution.x / uResolution.y, 0.25), 1.0);
-    col *= 1.0 - uVignette * smoothstep(0.32, 0.95, length(v));
+    vec2 v = (vUv - 0.5) * vec2(mix(1.0, uResolution.x / uResolution.y, 0.25), 1.0);
+    col *= 1.0 - uVignette * smoothstep(0.38, 1.0, length(v));
 
     gl_FragColor = vec4(rollOff(col), 1.0);
     #include <colorspace_fragment>
@@ -174,6 +149,8 @@ const finalFragment = /* glsl */ `
 `;
 
 const BLOOM_LEVELS = 4;
+/** how much of the blurred light is added back */
+const BLOOM = 0.22;
 
 export function createPost(renderer: WebGLRenderer): Post | null {
   // half-float colour targets are needed; without them the caller draws straight to the screen
@@ -193,8 +170,7 @@ export function createPost(renderer: WebGLRenderer): Post | null {
   const rtComp = target(4, true);
   const down = Array.from({ length: BLOOM_LEVELS }, () => target());
   const up = Array.from({ length: BLOOM_LEVELS - 1 }, () => target());
-  const streak = [target(), target()];
-  const targets = [rtComp, ...down, ...up, ...streak];
+  const targets = [rtComp, ...down, ...up];
 
   const resolution = new Vector2(4, 4);
   const material = (fragmentShader: string, uniforms: Record<string, IUniform>) =>
@@ -202,9 +178,9 @@ export function createPost(renderer: WebGLRenderer): Post | null {
 
   const prefilter = material(prefilterFragment, {
     tColor: { value: rtComp.texture },
-    uHalfTexel: { value: new Vector2() },
-    uThreshold: { value: 0.36 },
-    uKnee: { value: 0.22 },
+    uTexel: { value: new Vector2() },
+    uThreshold: { value: 0.4 },
+    uKnee: { value: 0.24 },
   });
   const downMat = material(downFragment, { tColor: { value: null }, uHalfTexel: { value: new Vector2() } });
   const upMat = material(upFragment, {
@@ -212,21 +188,16 @@ export function createPost(renderer: WebGLRenderer): Post | null {
     tBase: { value: null },
     uHalfTexel: { value: new Vector2() },
   });
-  const streakMat = material(streakFragment, { tColor: { value: null }, uStepX: { value: 0 }, uCut: { value: 0 } });
   const final = material(finalFragment, {
     tColor: { value: rtComp.texture },
     tBloom: { value: up[0].texture },
-    tStreak: { value: streak[0].texture },
     uResolution: { value: resolution },
-    uStreakTint: { value: new Color('#FFE2B8') },
-    uBloom: { value: 0.2 },
-    uStreak: { value: 0.4 },
-    uFringe: { value: 0.004 },
-    uVignette: { value: 0.38 },
-    uGrain: { value: 0.024 },
+    uBloom: { value: BLOOM },
+    uVignette: { value: 0.26 },
+    uGrain: { value: 0.011 },
     uTime: { value: 0 },
   });
-  const materials = [prefilter, downMat, upMat, streakMat, final];
+  const materials = [prefilter, downMat, upMat, final];
 
   // one triangle that covers the screen
   const geometry = new BufferGeometry();
@@ -257,18 +228,24 @@ export function createPost(renderer: WebGLRenderer): Post | null {
     setSize(width, height) {
       resolution.set(width, height);
       rtComp.setSize(width, height);
-      let w = width;
-      let h = height;
+      // the pyramid: a quarter, an eighth, …
+      let w = Math.max(2, Math.round(width / 2));
+      let h = Math.max(2, Math.round(height / 2));
       for (let i = 0; i < BLOOM_LEVELS; i++) {
         w = Math.max(2, Math.round(w / 2));
         h = Math.max(2, Math.round(h / 2));
         down[i].setSize(w, h);
         if (i < BLOOM_LEVELS - 1) up[i].setSize(w, h);
       }
-      streak.forEach((s) => s.setSize(down[1].width, down[1].height));
+    },
+    withTarget(fn) {
+      renderer.setRenderTarget(rtComp);
+      fn();
+      renderer.setRenderTarget(null);
     },
     render(drawScene, state, clearColor) {
       final.uniforms.uTime.value = state.time;
+      final.uniforms.uBloom.value = state.bloom ? BLOOM : 0;
 
       renderer.setRenderTarget(rtComp);
       renderer.setClearColor(clearColor, 1); // set per target: it is converted to the target's colour space
@@ -277,8 +254,13 @@ export function createPost(renderer: WebGLRenderer): Post | null {
       renderer.clearDepth();
       drawScene.overlay();
 
+      if (!state.bloom) {
+        draw(final, null);
+        return;
+      }
+
       // bloom pyramid: down …
-      prefilter.uniforms.uHalfTexel.value.set(0.5 / rtComp.width, 0.5 / rtComp.height);
+      prefilter.uniforms.uTexel.value.set(1 / rtComp.width, 1 / rtComp.height);
       draw(prefilter, down[0]);
       for (let i = 1; i < BLOOM_LEVELS; i++) {
         downMat.uniforms.tColor.value = down[i - 1].texture;
@@ -292,16 +274,6 @@ export function createPost(renderer: WebGLRenderer): Post | null {
         upMat.uniforms.tBase.value = down[i].texture;
         upMat.uniforms.uHalfTexel.value.set(0.5 / from.width, 0.5 / from.height);
         draw(upMat, up[i]);
-      }
-
-      // anamorphic streak: three horizontal steps, each three times wider than the last
-      const sources = [down[1], streak[0], streak[1]];
-      const dests = [streak[0], streak[1], streak[0]];
-      for (let i = 0; i < 3; i++) {
-        streakMat.uniforms.tColor.value = sources[i].texture;
-        streakMat.uniforms.uStepX.value = (1.6 * Math.pow(3, i)) / streak[0].width;
-        streakMat.uniforms.uCut.value = i === 0 ? 0.2 : 0;
-        draw(streakMat, dests[i]);
       }
 
       draw(final, null);
