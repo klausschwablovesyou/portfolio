@@ -212,7 +212,6 @@ const en: SiteContent = {
       { title: 'Cloud & delivery', items: '<b>Azure · Azure DevOps</b> · Docker · CI/CD · Netlify' },
       { title: 'Quality & workflow', items: 'Cypress · Jest · SonarQube · Git / GitHub · npm · Jira' },
     ],
-    marqueeLabel: 'Technologies',
   },
   earlier: {
     kicker: 'Earlier · 2003–2013',

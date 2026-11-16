@@ -2,8 +2,8 @@ import { AdditiveBlending, Color, Mesh, PlaneGeometry, ShaderMaterial } from 'th
 import { emit, HALF_VIEW, type Shared } from './shared';
 
 /**
- * A shooting star, now and then: a thin streak that crosses part of the upper sky in well
- * under a second and is gone. One at a time, several seconds apart, so it stays a small
+ * A shooting star, now and then: a thin, tapering streak with a small hot head that crosses
+ * part of the upper sky in well under a second and is gone, its tail cooling as it fades. One at a time, several seconds apart, so it stays a small
  * surprise at the edge of the eye and never a show.
  *
  * It lives on a plane at a fixed depth in front of the camera and takes no part in the travel
@@ -30,16 +30,17 @@ const vertex = /* glsl */ `
 
 const fragment = /* glsl */ `
   uniform vec3 uColor;
+  uniform vec3 uCool;
   uniform float uLife;
   varying vec2 vUv;
   ${emit}
   void main() {
-    // u runs from the end of the tail (0) to the head (1)
-    float across = abs(vUv.y - 0.5) * 2.0;
-    float tail = pow(vUv.x, 2.4);
-    float head = smoothstep(0.93, 1.0, vUv.x);
-    float light = (tail * 0.55 + head) * exp(-across * across * 4.0) * uLife;
-    gl_FragColor = vec4(emit(uColor * light), 1.0);
+    // u runs from the end of the tail (0) to the head (1); the streak narrows towards the tail
+    float across = abs(vUv.y - 0.5) * 2.0 / mix(0.3, 1.0, vUv.x);
+    float tail = pow(vUv.x, 2.6);
+    float head = smoothstep(0.94, 1.0, vUv.x);
+    float light = (tail * 0.5 + head * 1.2) * exp(-across * across * 4.0) * uLife;
+    gl_FragColor = vec4(emit(mix(uCool, uColor, vUv.x * vUv.x) * light), 1.0);
     #include <colorspace_fragment>
   }
 `;
@@ -54,7 +55,12 @@ export function createMeteor(shared: Shared): Meteor {
     transparent: true,
     depthWrite: false,
     blending: AdditiveBlending,
-    uniforms: { uColor: { value: new Color('#DDEFF2') }, uLife: { value: 0 }, uGain: shared.uGain },
+    uniforms: {
+      uColor: { value: new Color('#EAF4F5') },
+      uCool: { value: new Color('#7FB6C8') },
+      uLife: { value: 0 },
+      uGain: shared.uGain,
+    },
   });
   const mesh = new Mesh(geometry, material);
   mesh.position.z = -DEPTH;
@@ -98,7 +104,7 @@ export function createMeteor(shared: Shared): Meteor {
       mesh.position.y = (flight.y + flight.dy * run) * halfH;
       // the tail grows out behind the head, and the streak is about two pixels wide on any screen
       const length = Math.min(run, flight.length) * halfH;
-      mesh.scale.set(Math.max(length, 0.001), (2.4 / viewHeight) * 2 * halfH, 1);
+      mesh.scale.set(Math.max(length, 0.001), (2 / viewHeight) * 2 * halfH, 1);
       material.uniforms.uLife.value = Math.min(1, age * 8) * (1 - age * age);
     },
     dispose() {

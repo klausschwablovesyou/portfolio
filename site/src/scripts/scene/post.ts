@@ -36,8 +36,12 @@ export interface PostState {
 export interface Post {
   /** true when the GPU accepts the render targets this needs; call after setSize */
   check(): boolean;
-  /** size of the drawing buffer in pixels */
-  setSize(width: number, height: number): void;
+  /**
+   * Size of the drawing buffer in pixels, and how many samples per pixel the picture is
+   * antialiased with. Multisampling a float target is the most expensive single thing in a
+   * frame, so a dense buffer (a high pixel ratio) gets by with fewer samples.
+   */
+  setSize(width: number, height: number, samples?: number): void;
   render(draw: { backdrop(): void; overlay(): void }, state: PostState, clearColor: Color): void;
   /**
    * Runs `fn` with the composition target bound. A program depends on the colour space of the
@@ -225,8 +229,12 @@ export function createPost(renderer: WebGLRenderer): Post | null {
       renderer.setRenderTarget(null);
       return complete;
     },
-    setSize(width, height) {
+    setSize(width, height, samples = 4) {
       resolution.set(width, height);
+      if (rtComp.samples !== samples) {
+        rtComp.samples = samples;
+        rtComp.dispose(); // made again, with the new sample count, when it is next used
+      }
       rtComp.setSize(width, height);
       // the pyramid: a quarter, an eighth, …
       let w = Math.max(2, Math.round(width / 2));

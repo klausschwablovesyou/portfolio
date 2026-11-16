@@ -93,15 +93,17 @@ Every response gets cache and security headers (`backend/src/http/headers.ts`):
 
 `site/src/scripts/scene/` draws two layers on one WebGL canvas, loaded on idle after the text:
 
-- **Background** (`cosmos/`): gas and dust sky, an endless star field with parallax, a ringed
-  planet, a turning satellite and occasional shooting stars.
+- **Background** (`cosmos/`): a nebula and star dust, an endless star field with parallax, a
+  backlit ringed planet, a turning satellite and occasional shooting stars. Behind the contact
+  section a mountain landscape at dusk is drawn over it (`terrain.ts`), baked into a texture once.
 - **Anchored objects**, tied to elements of the page: the career drawn as a git graph in the hero
-  (`graph.ts`) and a spinning shuriken (`shuriken.ts`).
-- **Post-processing** (`post.ts`): depth of field, bloom, lens effects and grain.
+  (`graph.ts`) and a steel throwing star (`shuriken.ts`).
+- **Post-processing** (`post.ts`): a soft bloom, a slight vignette and a little grain.
 
-Quality steps down on its own when frames get slow. `?fx=0|1|2` pins a step (0 = no
-post-processing). With `prefers-reduced-motion` the scene renders a still frame. The page is fully
-readable without JavaScript or WebGL.
+One sun (`sun.ts`) lights everything. The drawing buffer follows a pixel budget, so a large screen
+costs about what a laptop screen costs, and the quality steps down on its own when frames get
+slow. `?fx=0|1|2` pins a step (0 = no post-processing). With `prefers-reduced-motion` the scene
+renders a still frame. The page is fully readable without JavaScript or WebGL.
 
 `site/plan.md` is the original design brief and lists the design revisions and the reasons behind
 them.

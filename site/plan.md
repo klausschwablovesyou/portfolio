@@ -409,3 +409,63 @@ Left as it was, for the owner to decide: the ridge-shaped section edges (`Ridge.
 Verified in headless Chrome on the real GPU (Apple M1 Pro; `--headless=new --enable-gpu --use-angle=metal`, so no software-rendering flag and no pinned `?fx`) at 390 × 844, 820 × 1180, 1440 × 900, 2560 × 1300 at 2x and 3440 × 1440, in both languages, with `?fx=0`, and with reduced motion; `astro check` and `astro build` pass. At 2560 × 1300 at 2x it ran at 48 fps on quality step 2, against 40 fps for the terrain, and at 60 fps on steps 1 and 0. Safari, iOS, Android and weak GPUs are untested, as before.
 
 Note for the next run: with Astro 7, `astro dev` starts the server in the background and returns at once; `astro dev stop` ends it.
+
+### Professional redesign (fourth revision, 2026-11-16, branch `pro-design`)
+
+The owner asked for a much more professional design: the three.js backgrounds are good in their themes but had to be executed far better without slowing the page down, and the typography had to become much more professional and more stylish. The content, the section order, the i18n mechanism, the backend and the themes of the scene are as they were. Where sections 8 to 10 or the earlier parts of this section disagree with this part, this part and the code win.
+
+The page:
+
+| Was | Now | Where |
+|---|---|---|
+| Archivo at its widest and heaviest for the name and every heading, Source Serif 4 for prose, JetBrains Mono capitals for labels | Three voices: **Newsreader** (display serif with an optical-size axis, light weights; the name is set roman, then italic, in one colour), **Geist** for text and UI, **Geist Mono** for data. Tokens hold the families, a fluid type scale (a perfect fourth), line heights, tracking that tightens with size, and weights. Fallback fonts carry metric overrides so the swap barely moves the text; the three files of the first screen are preloaded. | `styles/tokens.css`, `layouts/Base.astro` |
+| Ridge-shaped (torn) edges between dark and light sections | Straight edges. `Ridge.astro` is gone. Light sections are warm paper (`#F4F1EA`). | `styles/base.css` |
+| `//` kickers, amber corner brackets, a pulsing status pill, an outlined-text marquee, cards that tilt with a glare, a portrait that swings in, a scroll cue | Removed. A 12-column rail grid: labels, dates and the portrait in the first four columns, the content in the other eight; hairlines instead of boxes. Selected work is a list, not cards. The portrait is shown in greyscale (a CSS filter in `sections.css`, one line to undo). | `styles/sections.css`, `components/` |
+| Amber on the name, headings, numbers, borders and labels at once | Amber only on the primary action, on "current" data and on the reading progress. | `styles/` |
+| Content fading in and out in both directions; parallax, tilt and the timeline fill computed on every scroll frame (about 9 forced style recalculations per frame) | Content is revealed once (one `IntersectionObserver`) and stays; nothing runs on scroll. | `scripts/motion.ts` |
+| A dark nav slab over every section | The nav takes the colour of the section under it (`nav.ts` sets `.on-light`), with a small blurred veil; nothing at all while the hero is at rest. | `scripts/nav.ts`, `styles/sections.css` |
+| Headline numbers as a boxed section of their own | A band of numbers that closes the first screen. | `styles/sections.css` |
+
+The scene:
+
+| Was | Now | Where |
+|---|---|---|
+| Planet as a dark disc with a graticule and hairline rings | A shaded, backlit gas giant: banded globe, soft terminator, an atmosphere that glows along the limb, a real ring disc with a density profile (bands, one division) that scatters the light forward, the planet's shadow on the rings and theirs on the planet, two small moons. | `cosmos/planet.ts` |
+| Satellite as a line drawing with dots | A small solid model, lit: foil body, wings with a cell grid, dish, mast with a beacon. One mesh and one point. `cosmos/kit.ts` (line, dot and glass materials) is gone. | `cosmos/satellite.ts` |
+| The same four-point sparkle on 2 % of the stars | Bright stars have a soft halo; only five carry thin spikes, each turned a little differently. | `cosmos/stars.ts` |
+| Nebula computed per pixel at full resolution (about 17 noise evaluations per pixel per frame) | The gas (now with filaments and dust lanes) is computed in a buffer 288 px tall and enlarged; only the star dust is added per pixel. | `cosmos/sky.ts` (`prerender`) |
+| Stack graph: fat tubes with additive glow shells, 40 sphere meshes, sprites (about 65 draw calls); it swayed by itself and "exploded" on scroll | One mesh of thin lines with a constant width in pixels, commit dots and head lights as points (5 draw calls). It stands still unless the pointer or the page moves, so the HTML labels are only rewritten then; scrolling away it recedes and fades. | `scene/graph.ts` |
+| Throwing star: lit standard material, yellow outline lines, ghost outlines, four lights in the overlay scene | Dark brushed steel in a shader of its own that mirrors an analytic dusk (dark sky, glowing horizon, the sun, pale sky light behind the viewer). Smaller. The overlay scene has no lights any more. | `scene/shuriken.ts` |
+| Landscape: khaki dunes under a teal sky with contour lines; per pixel three noise heightfield evaluations for the normal and up to 22 for the shadow; it replaced the cosmos below the top of the contact section (scissor) | Mountain ridges at dusk, backlit, each further ridge nearer to the colour of the haze. Height, normal and a soft shadow are **baked once** into a 1024 × 512 texture (`prepare`); per frame the mesh is displaced and lit from it. It is drawn **over** the cosmos; its sky is only a glow at the horizon, so the stars and the planet stay visible above the mountains. The camera's travel is counted back from the end of the page, so every page length sees the same land. | `scene/terrain.ts` |
+| Post: bloom from half resolution, three passes of anamorphic streak, colour fringing, grain 0.024; an antialiased canvas *and* a 4-sample float target | Bloom from a quarter of the resolution, no streak, no fringing, grain 0.011. In the film path the canvas itself is not antialiased; the float target has 2 samples per pixel on a dense buffer (pixel ratio ≥ 1.4) and 4 otherwise. | `scene/post.ts` |
+| Quality tiers by pixel-ratio cap; a tier went only when frames averaged over 38 ms | Tiers by **pixel budget** (3.4, 1.9 and 1.5 megapixels), so a large screen costs what a laptop screen costs. A tier goes when more than 60 % of 40 frames took over 24 ms. The lowest tier keeps the composition target and skips the bloom; `?fx=0` still draws straight to the canvas (the path of a GPU without float targets). | `scene/index.ts` |
+| `getBoundingClientRect` and `offsetWidth` on anchors and labels every frame | Rectangles and label sizes are measured when the layout can have changed (resize, fonts, document height) and positions follow from `scrollY`; a label's style is written only when its value changes. | `scene/index.ts`, `scene/anchors.ts` |
+| The cosmos lit from the upper left, the landscape from the right | One sun for everything: low, to the right, behind the scene. Every body is backlit. | `scene/sun.ts` |
+| Planet and satellite placed in fixed view coordinates | Placed from the page layout (`Layout` in `cosmos/index.ts`, measured in `scene/index.ts`): the planet rests on the band of numbers of the first screen and climbs to the upper right with the reading progress; the satellite starts in the gap beside the hero buttons, or in the left margin on a wide screen. | `cosmos/index.ts` |
+
+Measured with headless Chrome on the real GPU (Apple M1 Pro), quality tier pinned with `?fx=2`: milliseconds per animation frame, CPU and GPU together (a 1-pixel `readPixels` after every frame forces the GPU to finish). A page that draws one triangle costs about 2.5 ms measured this way.
+
+| Viewport | Before: hero / stacks / work / page end | After |
+|---|---|---|
+| 1440 × 900 at 2x | 13.1 / 10.9 / 11.3 / 13.8 | 8.6 / 6.8 / 6.3 / 9.2 |
+| 2560 × 1300 at 2x | 24.2 / 21.2 / 21.0 / 41.0 | 11.1 / 10.9 / 10.5 / 12.7 |
+| 390 × 844 at 3x (phone size) | 6.8 / 6.8 / 7.6 / 8.8 | 4.0 / 3.6 / 4.4 / 5.3 |
+
+Style recalculations per frame while scrolling: 8.7 before, 1.2 after.
+
+Things to know when changing it further:
+
+- Multisampling the float target is the most expensive single thing in a frame: at 1440 × 900 at 2x the hero costs 11.4 ms with 4 samples, 8.5 with 2 and 6.0 with none.
+- With the sun behind the planet, as seen from the camera, the globe is almost all night side: its light is the atmospheric rim and the rings. That is intended (and physically right); a larger lit crescent needs another sun direction, which also turns the light of the landscape.
+- An opaque body of the cosmos (globe, moons, satellite) is flagged `transparent`, so it is drawn after the stars and covers them. A see-through object is always drawn after the opaque ones, whatever its `renderOrder`: the glow of the landscape's sky relies on the depth test to stay behind the land.
+- The landscape is baked for the height the mountains have at the current aspect ratio and is baked again when that changes. The baked stretch covers a travel of 46 world units before the end of the page (`TRAVEL` in `terrain.ts`) and screens up to 21:9.
+- Anchor elements (`data-anchor`) must not be moved by CSS transforms: the scene works from layout positions. The hero figure is revealed with `data-reveal="fade"`, opacity only.
+- A backtick inside a GLSL comment ends the template string it is written in.
+- Verified at 390 × 844, 1280 × 720, 1440 × 900 (1x and 2x), 1920 × 1080 and 2560 × 1300, in both languages, with `?fx=0` and `?fx=1`, with reduced motion and with JavaScript off, and behind the Danet backend with its Content-Security-Policy; `astro check`, `astro build` and the backend tests pass. Safari, iOS, Android and weak GPUs are untested, as before.
+
+Left for the owner to decide:
+
+- The printed CV still uses Archivo and Source Serif 4, so the site and the PDF no longer share their typefaces.
+- Two other typographic directions were tried and are kept, unfinished, on the branches `wip/design-swiss` (Geist only) and `wip/design-heritage` (Archivo, Source Serif 4 and JetBrains Mono, set far more quietly).
+- The portrait is shown in greyscale.
+- The first screen loads about 330 kB of fonts (the two Newsreader files with the optical-size axis are 130 to 150 kB each); the Hungarian page loads the Latin Extended files on top.

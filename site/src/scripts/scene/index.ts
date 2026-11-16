@@ -1,13 +1,4 @@
-import {
-  AmbientLight,
-  Color,
-  DirectionalLight,
-  PerspectiveCamera,
-  PointLight,
-  Scene,
-  Vector3,
-  WebGLRenderer,
-} from 'three';
+import { Color, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { anchorToWorld, emptyBox, emptyWorldRect, measureBox, type WorldRect } from './anchors';
 import { createCosmos, type Layout } from './cosmos';
 import { createGraph, type GraphLabel } from './graph';
@@ -18,8 +9,9 @@ import { createTerrain } from './terrain';
 /**
  * One fixed full-window canvas and one renderer, drawing two layers:
  *
- *  1. the backdrop, with a camera of its own: the cosmos (scrolling moves the star field past it),
- *     except behind the contact section, which has the lit mountain landscape of terrain.ts;
+ *  1. the backdrop, with cameras of its own: the cosmos (scrolling moves the star field past
+ *     it), and over it, behind the contact section, the mountain landscape of terrain.ts,
+ *     whose sky is only a glow at the horizon, so the stars stay visible above it;
  *  2. the anchored objects (stack graph, contact emblem), with a camera that looks straight
  *     ahead, so each object can follow an empty HTML element (data-anchor) and the 3D layout
  *     follows the responsive HTML layout.
@@ -123,22 +115,21 @@ export function initScene(canvas: HTMLCanvasElement): void {
   /* layer 1: cosmos, and the landscape behind the contact section */
   const cosmos = createCosmos(small);
   const landSection = document.querySelector('#contact');
-  const terrain = landSection ? createTerrain(small ? 64 : 96, width / height, small ? 14 : 22) : null;
+  const terrain = landSection ? createTerrain(small ? 64 : 96, width / height) : null;
+  // the land is baked into a texture once: ahead of time when the page is idle, or the moment it is needed
+  let landBaked = false;
+  const bakeLand = () => {
+    if (landBaked || !terrain) return;
+    landBaked = true;
+    terrain.prepare(renderer);
+  };
 
   /* layer 2: anchored objects */
   const scene = new Scene();
   const camera = new PerspectiveCamera(CAMERA_FOV, width / height, 0.1, 120);
   camera.position.set(0, 0, CAMERA_Z);
 
-  scene.add(new AmbientLight(0xbfd6db, 0.7));
-  const key = new DirectionalLight(0xffffff, 2.4);
-  key.position.set(3, 7, 9);
-  scene.add(key);
-  const rim = new DirectionalLight(0xf2b33d, 2.2);
-  rim.position.set(-8, -4, 3);
-  scene.add(rim);
-  const glow = new PointLight(0xf2b33d, 0, 14, 1.6);
-  scene.add(glow);
+  // no lights: the graph is drawn in light of its own, the emblem mirrors its surroundings
 
   const graph = createGraph();
   scene.add(graph.group);
@@ -201,7 +192,8 @@ export function initScene(canvas: HTMLCanvasElement): void {
     const fit = Math.sqrt(cfg.budget / Math.max(1, width * height));
     renderer.setPixelRatio(Math.max(MIN_RATIO, Math.min(window.devicePixelRatio || 1, cap, fit)));
     renderer.setSize(width, height, false);
-    if (post) post.setSize(canvas.width, canvas.height);
+    // on a dense buffer two samples per pixel smooth the edges as well as four do on a coarse one
+    if (post) post.setSize(canvas.width, canvas.height, renderer.getPixelRatio() >= 1.4 ? 2 : 4);
     // sizes that the cosmos gives in pixels depend on the pixel ratio of the tier
     cosmos.resize(width / height, height, renderer.getPixelRatio(), layout);
     graph.resize(renderer.getPixelRatio());
@@ -297,33 +289,14 @@ export function initScene(canvas: HTMLCanvasElement): void {
     return 1 - smooth((y - (maxScroll - height * 1.5)) / (height * 1.1));
   }
 
-  /*
-   * Where the landscape starts on screen, in CSS pixels from the top: 0 = it fills the view,
-   * height = it is not on screen. Above that line the cosmos is drawn, below it the landscape.
-   */
-  let landTop = height;
-
-  function clipBelow(top: number, on: boolean): void {
-    const rt = renderer.getRenderTarget();
-    if (rt) {
-      rt.scissor.set(0, 0, rt.width, Math.ceil(((height - top) / height) * rt.height));
-      rt.scissorTest = on;
-      renderer.setRenderTarget(rt); // a target's scissor is applied when it is bound
-    } else {
-      renderer.setScissor(0, 0, width, height - top);
-      renderer.setScissorTest(on);
-    }
-  }
+  /** the contact section, and with it the landscape, is on screen */
+  let landOn = false;
 
   function drawBackdrop(): void {
-    if (landTop > 0) renderer.render(cosmos.scene, cosmos.camera);
-    if (!terrain || landTop >= height) return;
-    if (landTop > 0) {
-      clipBelow(landTop, true);
-      renderer.clear(true, true, false);
-    }
+    renderer.render(cosmos.scene, cosmos.camera);
+    if (!terrain || !landOn) return;
+    renderer.clearDepth();
     renderer.render(terrain.scene, terrain.camera);
-    if (landTop > 0) clipBelow(landTop, false);
   }
 
   const drawOverlay = () => renderer.render(scene, camera);
@@ -376,15 +349,18 @@ export function initScene(canvas: HTMLCanvasElement): void {
     const intro = 1 - Math.pow(1 - introT, 3);
     cosmos.update({ screens: scrollEase / height, progress: Math.min(1, scrollEase / maxScroll), time, intro, pointer: p, direct });
 
-    landTop = height;
+    cosmos.prerender(renderer);
+
+    landOn = false;
     if (terrain && landSection) {
       const top = landBox.top - scrollY;
       if (top < height && top + landBox.height > 0) {
-        landTop = Math.max(0, Math.round(top));
-        terrain.update({ scroll: scrollEase * SCROLL_TO_WORLD, time, rise: riseAmount(scrollEase), intro, pointer: p });
+        landOn = true;
+        bakeLand();
+        // counted back from the end of the page, so every page length sees the same land
+        terrain.update({ travel: (scrollEase - maxScroll) * SCROLL_TO_WORLD, time, rise: riseAmount(scrollEase), pointer: p });
       }
     }
-    if (landTop > 0) cosmos.prerender(renderer);
 
     // slight camera drift with the pointer; anchors include the camera offset, so the
     // anchored objects stay on their elements
@@ -412,10 +388,6 @@ export function initScene(canvas: HTMLCanvasElement): void {
         emblem.group.scale.setScalar(Math.min(w.width, w.height) * 0.4);
         emblem.group.position.set(w.x, w.y, 0);
         emblem.update(dt, time, p, boost);
-        glow.position.set(w.x - w.width * 0.2, w.y + w.height * 0.25, 3);
-        glow.intensity = 12;
-      } else {
-        glow.intensity = 0;
       }
     }
 
@@ -510,6 +482,8 @@ export function initScene(canvas: HTMLCanvasElement): void {
     started = true;
     last = performance.now();
     frame(last);
+    // well after the opening shot, and long before anyone reaches the end of the page
+    setTimeout(bakeLand, 3000);
   };
   // never wait long for it: the first frame compiles whatever is still missing
   Promise.race([Promise.all(jobs), new Promise((resolve) => setTimeout(resolve, 1200))]).then(start, start);

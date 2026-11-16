@@ -97,13 +97,6 @@ export const workMeta: { years: string; tags: string[]; /** product or company w
   { years: '2008–09', tags: ['PHP5', 'MySQL', 'Dojo', 'ExtJS'] },
 ];
 
-/** Running technology marquee in the Skills section (all from the CV's skill groups). */
-export const marquee = [
-  'Angular', 'TypeScript', 'RxJS', 'Java Spring', '.NET Core', 'C#', 'React', 'Electron', 'Node.js',
-  'ThreeJS', 'Azure', 'Azure DevOps', 'Docker', 'Cypress', 'Jest', 'SonarQube', 'MSSQL', 'Oracle PL/SQL',
-  'SQLite', 'MySQL', 'PHP', 'Symfony', 'Git', 'Jira',
-];
-
 export const person = {
   given: 'Tibor',
   family: 'Németh',

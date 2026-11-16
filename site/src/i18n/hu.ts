@@ -215,7 +215,6 @@ const hu: SiteContent = {
       { title: 'Cloud és delivery', items: '<b>Azure · Azure DevOps</b> · Docker · CI/CD · Netlify' },
       { title: 'Minőség és workflow', items: 'Cypress · Jest · SonarQube · Git / GitHub · npm · Jira' },
     ],
-    marqueeLabel: 'Technológiák',
   },
   earlier: {
     kicker: 'Korábban · 2003–2013',

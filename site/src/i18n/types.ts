@@ -110,7 +110,6 @@ export interface SiteContent {
     heading: string;
     /** HTML items; <b> marks the core ones */
     groups: { title: string; items: string }[];
-    marqueeLabel: string;
   };
   earlier: {
     kicker: string;
