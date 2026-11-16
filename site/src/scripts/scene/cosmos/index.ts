@@ -71,13 +71,14 @@ const LAP = 1.3;
  * that outside. `size` is the radius against half the view height.
  *
  * The planet keeps to the right edge, its limb just inside the view. On the first screen it
- * rests on the band of numbers that closes that screen (wherever the layout puts that band:
+ * rests on the band of numbers that closes that screen, sunk into it a little so its rings stay
+ * clear of the year labels of the graph (wherever the layout puts that band:
  * on a low screen it starts under the fold, and so does most of the planet); by the end of
  * the page it has climbed into the upper right, above the landscape. Its height follows
  * the reading progress and not the scroll distance, so it ends in the same place on a page of
  * any length.
  */
-const PLANET = { depth: 190, size: 0.18, inset: 0.055, from: -0.5, to: 0.62, above: 0.02 };
+const PLANET = { depth: 190, size: 0.18, inset: 0.055, from: -0.57, to: 0.62, above: -0.05 };
 
 /*
  * The satellite is nearer, so it rises faster as the page scrolls, leaves at the top and comes

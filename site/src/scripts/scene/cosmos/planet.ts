@@ -32,7 +32,7 @@ export interface Planet {
 }
 
 /** inner and outer radius of the rings, in planet radii */
-const RING = [1.28, 2.32];
+const RING = [1.28, 2.24];
 
 const noise3 = /* glsl */ `
   float hash31(vec3 p) {
@@ -121,7 +121,9 @@ const globeFragment = /* glsl */ `
     float reach = smoothstep(-0.6, 0.25, ndl);
     col += uAir * limb * (0.045 + 1.5 * reach * reach);
 
-    gl_FragColor = vec4(col, 1.0);
+    // the silhouette is smoothed here, by fading the last pixel of the limb: the multisampling
+    // of the picture is too coarse for an edge this dark against rings this bright
+    gl_FragColor = vec4(col, clamp(mu / max(fwidth(mu) * 1.5, 1e-4), 0.0, 1.0));
     #include <colorspace_fragment>
   }
 `;
@@ -212,10 +214,11 @@ function ringProfile(): DataTexture {
     let d = 0.5 + 0.5 * curve(k * 7 + 3);
     d *= 0.6 + 0.4 * curve(k * 31 + 40);
     d *= 0.82 + 0.18 * curve(k * 110 + 90);
-    // a faint inner ring, the bright main rings, one clear division, a thin gap further out
+    // a faint inner ring, the bright main rings, one clear division, a shallow dip further out
+    // (nothing narrower: a gap thinner than a pixel on screen breaks up into dashes)
     d *= 0.3 + 0.7 * step(0.16, 0.24, k);
     d *= 1 - 0.94 * step(0.585, 0.6, k) * (1 - step(0.645, 0.66, k));
-    d *= 1 - 0.7 * step(0.835, 0.842, k) * (1 - step(0.852, 0.859, k));
+    d *= 1 - 0.45 * step(0.8, 0.825, k) * (1 - step(0.86, 0.885, k));
     d *= 0.75 + 0.25 * (1 - step(0.66, 1, k));
     // soft edges
     d *= step(0, 0.035, k) * (1 - step(0.955, 1, k));
