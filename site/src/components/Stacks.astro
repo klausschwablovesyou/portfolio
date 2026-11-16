@@ -12,53 +12,62 @@ const plotVars = `--t0:${timeline.start};--span:${timeline.end - timeline.start}
 
 <section id="stacks" class="section dark stacks-section" aria-labelledby="stacks-title">
   <div class="wrap">
-    <div class="section-head">
-      <p class="kicker" data-reveal>{s.kicker}</p>
-      <h2 id="stacks-title" class="h2" data-reveal style="--i:1">{s.heading}</h2>
-      <p class="lead" data-reveal style="--i:2">{s.intro}</p>
-    </div>
+    <header class="head grid">
+      <p class="label rail" data-reveal>{s.kicker}</p>
+      <div class="main">
+        <h2 id="stacks-title" class="h2" data-reveal style="--i:1">{s.heading}</h2>
+        <p class="lead" data-reveal style="--i:2">{s.intro}</p>
+      </div>
+    </header>
 
-    <figure class="chart" aria-label={s.figureLabel} data-reveal data-chart>
-      <figcaption class="chart-key">
+    <!-- The key and the title of the seniority band sit in the rail; the plot spans the
+         content columns, so its time axis is as wide as the text above it. -->
+    <figure class="chart grid" aria-label={s.figureLabel} data-reveal data-chart>
+      <figcaption class="chart-key rail label">
         <span><i class="k-now"></i>{s.legendCurrent}</span>
         <span><i></i>{s.legendEarlier}</span>
       </figcaption>
-      <ul class="plot" role="list" style={plotVars}>
-        {
-          stacks.map((st, i) => (
-            <li
-              class:list={['track', st.labelSide, { now: st.current }]}
-              style={`--from:${st.from};--to:${st.to};--i:${i}`}
-            >
-              <span class="bar" aria-hidden="true">
-                {st.segments?.map((sg) => (
-                  <span
-                    class="seg"
-                    style={`--l:${((sg.from - st.from) / (st.to - st.from)) * 100}%;--w:${((sg.to - sg.from) / (st.to - st.from)) * 100}%`}
-                  >
-                    <span class="seg-name">{sg.name}</span>
-                  </span>
-                ))}
-              </span>
-              <span class="lbl">
-                {st.name} <em>{st.years}</em>
-                {st.segments && (
-                  <span class="sr-only">({st.segments.map((sg) => `${sg.name} ${sg.years}`).join(', ')})</span>
-                )}
-              </span>
-            </li>
-          ))
-        }
-      </ul>
-      <div class="axis" style={plotVars} aria-hidden="true">
-        {axisYears.map((y) => <span style={`--y:${y}`}>{y}</span>)}
+      <div class="chart-plot main" style={plotVars}>
+        <div class="gridlines" aria-hidden="true">
+          {axisYears.map((y) => <span style={`--y:${y}`} />)}
+        </div>
+        <ul class="plot" role="list">
+          {
+            stacks.map((st, i) => (
+              <li
+                class:list={['track', st.labelSide, { now: st.current }]}
+                style={`--from:${st.from};--to:${st.to};--i:${i}`}
+              >
+                <span class="bar" aria-hidden="true">
+                  {st.segments?.map((sg) => (
+                    <span
+                      class="seg"
+                      style={`--l:${((sg.from - st.from) / (st.to - st.from)) * 100}%;--w:${((sg.to - sg.from) / (st.to - st.from)) * 100}%`}
+                    >
+                      <span class="seg-name">{sg.name}</span>
+                    </span>
+                  ))}
+                </span>
+                <span class="lbl">
+                  {st.name} <em>{st.years}</em>
+                  {st.segments && (
+                    <span class="sr-only">({st.segments.map((sg) => `${sg.name} ${sg.years}`).join(', ')})</span>
+                  )}
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="axis" aria-hidden="true">
+          {axisYears.map((y) => <span style={`--y:${y}`}>{y}</span>)}
+        </div>
       </div>
-      <p class="levels-title">{s.levelsTitle}</p>
-      <ol class="levels" role="list" style={plotVars}>
+      <p class="levels-title rail label">{s.levelsTitle}</p>
+      <ol class="levels main" role="list" style={plotVars}>
         {
           levelSpans.map((l, i) => (
             <li class:list={{ now: l.current }} style={`--from:${l.from};--to:${l.to};--i:${i + stacks.length}`}>
-              {s.levels[i]}
+              <span>{s.levels[i]}</span>
             </li>
           ))
         }

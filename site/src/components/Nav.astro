@@ -9,12 +9,9 @@ const { t } = Astro.props;
 
 <header class="nav" data-nav>
   <div class="nav-inner">
+    <!-- the monogram repeats the setting of the name: roman, then italic -->
     <a class="monogram" href="#top" aria-label={t.a11y.home}>
-      <svg viewBox="24 -1 1672 687" aria-hidden="true"
-        ><path
-          d="M301 686V158H24V-1H775V158H498V686ZM928 686V-1H1103L1430 319Q1439 327 1452 342Q1465 356 1480 371Q1494 386 1504 397H1512Q1511 378 1510 352Q1510 327 1510 308V-1H1696V686H1522L1198 366Q1177 346 1155 323Q1133 300 1119 285H1112Q1112 300 1112 325Q1113 350 1113 377V686Z"
-        ></path></svg
-      >
+      <span aria-hidden="true">T<i>N</i></span>
     </a>
     <nav class="nav-links" aria-label={t.a11y.mainNav}>
       <ul role="list">
@@ -33,7 +30,7 @@ const { t } = Astro.props;
       {
         locales.map((l, i) => (
           <>
-            {i > 0 && <span class="lang-sep" aria-hidden="true">|</span>}
+            {i > 0 && <span class="lang-sep" aria-hidden="true">/</span>}
             {l === t.locale ? (
               <span class="lang-current" aria-current="true" lang={l}>
                 <span aria-hidden="true">{l.toUpperCase()}</span>

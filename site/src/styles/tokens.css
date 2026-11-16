@@ -1,48 +1,140 @@
-/* Design tokens, carried over from cv-onepage.html so the site and the PDF read as one set. */
+/*
+ * Design tokens. Three voices: Newsreader (display serif, with its optical-size axis) for the
+ * name and the headings, Geist for text and UI, Geist Mono for data (years, tags, small labels).
+ */
+
+/* Local fonts resized to the metrics of the web fonts, so the swap barely moves the text. */
+@font-face {
+  font-family: 'Newsreader Fallback';
+  src: local('Georgia');
+  size-adjust: 97%;
+  ascent-override: 76%;
+  descent-override: 27%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Newsreader Fallback';
+  font-style: italic;
+  src: local('Georgia Italic'), local('Georgia-Italic');
+  size-adjust: 85%;
+  ascent-override: 87%;
+  descent-override: 31%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback';
+  font-weight: 100 900;
+  src: local('Arial');
+  size-adjust: 102.3%;
+  ascent-override: 98.7%;
+  descent-override: 28.3%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Mono Fallback';
+  font-weight: 100 900;
+  src: local('Menlo'), local('Courier New');
+  ascent-override: 101%;
+  descent-override: 29%;
+  line-gap-override: 0%;
+}
+
 :root {
-  /* ink: dark sections */
+  /* ink: the dark sections. --ink is also the clear colour of the 3D scene: keep it exact. */
   --ink: #0b1620;
-  --ink-raised: #13222e;
-  --ink-deep: #070f16;
-  --on-ink: #eef3f1;
-  --on-ink-soft: #c4d3d5;
-  --on-ink-muted: #8fa9af;
-  --hairline-ink: rgba(238, 243, 241, 0.15);
+  --on-ink: #f3efe7;
+  --on-ink-soft: #c6ced1;
+  --on-ink-muted: #94a5ac;
+  --rule-ink: rgb(243 239 231 / 0.16);
+  --rule-ink-strong: rgb(243 239 231 / 0.36);
+  /* the page colour at partial opacity: laid behind text that sits on the animated sky */
+  --scrim: rgb(11 22 32 / 0.66);
+  --scrim-0: rgb(11 22 32 / 0);
+
+  /* amber: the one accent. Primary actions and "current" data only. */
   --amber: #f2b33d;
-  --bar-earlier: #5b7d85;
+  --amber-hover: #f7c768;
+  --bar-earlier: #5f7b87;
 
-  /* paper: light sections */
-  --paper: #fbfcfb;
-  --paper-sunk: #f1f4f3;
-  --text: #12262c;
-  --text-soft: #3a5259;
-  --text-muted: #5b7379;
-  --rule: #d3dbd9;
-  --rule-soft: #e5eae8;
+  /* paper: the light sections */
+  --paper: #f4f1ea;
+  --text: #0b1620;
+  --text-soft: #34434b;
+  --text-muted: #5c6a70;
+  --rule: #d8d3c7;
   --amber-ink: #8a5709;
-  --amber-fill: #c8841a;
+  --amber-fill: #b9770f;
 
-  /* three voices: structure (sans), prose (serif), data (mono) */
-  --sans: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
-  --serif: 'Source Serif 4 Variable', Georgia, serif;
-  --mono: 'JetBrains Mono Variable', ui-monospace, Menlo, monospace;
+  /* families */
+  --serif: 'Newsreader Variable', 'Newsreader Fallback', Georgia, 'Times New Roman', serif;
+  --sans: 'Geist Variable', 'Geist Fallback', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: 'Geist Mono Variable', 'Geist Mono Fallback', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* fluid type */
-  --fs-display: clamp(3.1rem, 1.6rem + 7.4vw, 8.4rem);
-  --fs-h2: clamp(2rem, 1.3rem + 3.2vw, 4rem);
-  --fs-h3: clamp(1.15rem, 1.05rem + 0.45vw, 1.4rem);
-  --fs-lead: clamp(1.1rem, 1rem + 0.5vw, 1.35rem);
-  --fs-body: clamp(1rem, 0.96rem + 0.2vw, 1.1rem);
+  /* type scale: a perfect fourth (17 · 21 · 30 · [40 · 53] · 64 · … · 144) on a wide screen,
+     each step fluid between a 390 px and a 1440 px viewport */
+  --fs-display: clamp(5.25rem, 3.857rem + 5.714vw, 9rem); /* the name: 84 → 144 */
+  --fs-h1: clamp(3.5rem, 2.014rem + 6.095vw, 7.5rem); /* contact heading: 56 → 120 */
+  --fs-h2: clamp(2.375rem, 1.771rem + 2.476vw, 4rem); /* section headings: 38 → 64 */
+  --fs-figure: clamp(2.75rem, 2.286rem + 1.905vw, 4rem); /* headline numbers: 44 → 64 */
+  --fs-h3: clamp(1.4375rem, 1.275rem + 0.667vw, 1.875rem); /* 23 → 30 */
+  --fs-deck: clamp(1.375rem, 1.189rem + 0.762vw, 1.875rem); /* 22 → 30 */
+  --fs-lead: clamp(1.125rem, 1.055rem + 0.286vw, 1.3125rem); /* 18 → 21 */
+  --fs-body: clamp(1rem, 0.977rem + 0.095vw, 1.0625rem); /* 16 → 17 */
   --fs-small: 0.875rem;
-  --fs-mono: 0.78rem;
+  --fs-data: 0.8125rem;
+  --fs-label: 0.6875rem;
 
-  /* layout */
-  --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
-  --max: 1240px;
-  --section-pad: clamp(5rem, 3rem + 8vw, 10rem);
-  --nav-h: 64px;
-  --ridge-h: clamp(52px, 7.5vw, 120px);
+  /* line height per step */
+  --lh-display: 0.9;
+  --lh-h2: 1.05;
+  --lh-h3: 1.18;
+  --lh-deck: 1.28;
+  --lh-lead: 1.5;
+  --lh-body: 1.6;
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* tracking tightens as the size grows; capitals in the mono get air */
+  --tr-display: -0.04em;
+  --tr-h2: -0.028em;
+  --tr-h3: -0.015em;
+  --tr-deck: -0.012em;
+  --tr-label: 0.1em;
+
+  /* weights: the serif runs light when large, regular when small */
+  --w-display: 300;
+  --w-h2: 350;
+  --w-h3: 400;
+  --w-medium: 500;
+  --w-strong: 600;
+
+  /* layout: a 12-column grid; the first four columns are the rail for labels, dates and
+     the portrait, the other eight carry the content */
+  --max: clamp(75rem, 75vw, 90rem);
+  --gutter: clamp(1.25rem, 0.32rem + 3.8vw, 4rem);
+  --gap: clamp(1rem, 0.72rem + 1.15vw, 1.5rem);
+  --section-pad: clamp(5rem, 3.51rem + 6.1vw, 9rem);
+  --nav-h: 3.5rem;
+  --measure: 38rem;
+
+  /* spacing scale */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+  --sp-9: 6rem;
+
+  --radius: 3px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --nav-h: 4rem;
+  }
 }

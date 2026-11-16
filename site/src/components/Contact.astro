@@ -10,46 +10,57 @@ const c = t.contact;
 ---
 
 <section id="contact" class="section dark contact" aria-labelledby="contact-title">
-  <div class="wrap contact-grid">
-    <div class="contact-text">
-      <p class="kicker" data-reveal>{c.kicker}</p>
-      <h2 id="contact-title" class="contact-heading" data-reveal style="--i:1">{c.heading}</h2>
-      <p class="lead" data-reveal style="--i:2">{c.line}</p>
+  <div class="wrap contact-wrap">
+    <header class="head grid">
+      <p class="label rail" data-reveal>{c.kicker}</p>
+      <div class="main">
+        <h2 id="contact-title" class="contact-heading" data-reveal style="--i:1">{c.heading}</h2>
+        <p class="lead" data-reveal style="--i:2">{c.line}</p>
+      </div>
+    </header>
 
-      <ul class="channels" role="list">
-        {
-          contact.phone && (
-            <li data-reveal style="--i:3">
-              <span class="ch-label">{c.labels.phone}</span>
-              <a href={contact.phone.href}>
-                {contact.phone.display} <em>· {c.phoneNote}</em>
-              </a>
-            </li>
-          )
-        }
-        <li data-reveal style="--i:4">
-          <span class="ch-label">{c.labels.email}</span>
+    <ul class="channels" role="list">
+      {
+        contact.phone && (
+          <li class="channel grid" data-reveal>
+            <span class="label rail">{c.labels.phone}</span>
+            <span class="channel-value">
+              <a href={contact.phone.href}>{contact.phone.display}</a> <em>· {c.phoneNote}</em>
+            </span>
+          </li>
+        )
+      }
+      <li class="channel grid" data-reveal style="--i:1">
+        <span class="label rail">{c.labels.email}</span>
+        <span class="channel-value">
           <a href={`mailto:${contact.email}`}>{contact.email}</a>
-        </li>
-        <li data-reveal style="--i:5">
-          <span class="ch-label">{c.labels.linkedin}</span>
+        </span>
+      </li>
+      <li class="channel grid" data-reveal style="--i:2">
+        <span class="label rail">{c.labels.linkedin}</span>
+        <span class="channel-value">
           <a href={contact.linkedin.href} rel="noopener">{contact.linkedin.display}</a>
-        </li>
-        <li data-reveal style="--i:6">
-          <span class="ch-label">{c.labels.location}</span>
-          <span>{c.location} <em>· {c.timezoneNote}</em></span>
-        </li>
-      </ul>
+        </span>
+      </li>
+      <li class="channel grid" data-reveal style="--i:3">
+        <span class="label rail">{c.labels.location}</span>
+        <span class="channel-value">
+          {c.location} <em>· {c.timezoneNote}</em>
+        </span>
+      </li>
+    </ul>
 
-      <div class="contact-cta" data-reveal style="--i:7">
+    <div class="grid">
+      <div class="contact-cta main" data-reveal>
         <a class="btn btn-primary" href={contact.cvHref} download hreflang="en" type="application/pdf">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"></path></svg>
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"></path></svg>
           {c.cv}
         </a>
-        <span class="cv-note">{c.cvNote}</span>
+        <span class="label">{c.cvNote}</span>
       </div>
     </div>
-    <!-- The 3D shuriken follows this element. -->
+
+    <!-- The 3D shuriken follows this element: it is placed by layout only, never transformed. -->
     <div class="shuriken-anchor" data-anchor="shuriken" aria-hidden="true"></div>
   </div>
 </section>

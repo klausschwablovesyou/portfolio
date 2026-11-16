@@ -2,7 +2,6 @@
 import { Picture } from 'astro:assets';
 import portrait from '../assets/profile-photo.jpg';
 import type { SiteContent } from '../i18n';
-import Ridge from './Ridge.astro';
 
 interface Props {
   t: SiteContent;
@@ -12,61 +11,57 @@ const a = t.about;
 ---
 
 <section id="about" class="section light about" aria-labelledby="about-title">
-  <Ridge edge="top" seed={3} />
-  <div class="wrap about-grid">
-    <div class="portrait-col">
-      <!-- stage: scroll parallax + perspective · tilt: pointer rotation · portrait: 3D reveal -->
-      <div class="portrait-stage" data-speed="-0.04">
-        <div class="portrait-tilt" data-tilt>
-          <div class="portrait" data-reveal>
-            <Picture
-              src={portrait}
-              alt={a.portraitAlt}
-              formats={['avif', 'webp']}
-              widths={[320, 480, 640, 960]}
-              sizes="(min-width: 1024px) 420px, (min-width: 640px) 45vw, 90vw"
-              loading="lazy"
-              decoding="async"
-            />
-            <span class="portrait-glare" aria-hidden="true"></span>
+  <div class="wrap">
+    <header class="head grid">
+      <p class="label rail" data-reveal>{a.kicker}</p>
+      <h2 id="about-title" class="h2 main" data-reveal style="--i:1">{a.heading}</h2>
+    </header>
+
+    <div class="grid about-body">
+      <div class="rail about-side">
+        <div class="portrait" data-reveal>
+          <Picture
+            src={portrait}
+            alt={a.portraitAlt}
+            formats={['avif', 'webp']}
+            widths={[320, 480, 640, 960]}
+            sizes="(min-width: 1024px) 340px, (min-width: 720px) 30vw, 60vw"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      </div>
+
+      <div class="main">
+        <p class="lead" data-reveal>{a.paragraph}</p>
+
+        <blockquote class="quote" data-reveal>
+          <p>{a.quote}</p>
+          <footer class="label">{a.quoteSource}</footer>
+        </blockquote>
+
+        <div class="about-lists">
+          <div data-reveal>
+            <h3 class="label list-title">{a.leadershipTitle}</h3>
+            <ul class="rows" role="list">
+              {a.leadership.map((item) => <li>{item}</li>)}
+            </ul>
+          </div>
+          <div data-reveal style="--i:1">
+            <h3 class="label list-title">{a.languagesTitle}</h3>
+            <ul class="rows langs" role="list">
+              {
+                a.languages.map((l) => (
+                  <li>
+                    <b>{l.name}</b>
+                    <span>{l.level}</span>
+                  </li>
+                ))
+              }
+            </ul>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="about-text">
-      <p class="kicker" data-reveal>{a.kicker}</p>
-      <h2 id="about-title" class="h2" data-reveal style="--i:1">{a.heading}</h2>
-      <p class="about-para" data-reveal style="--i:2">{a.paragraph}</p>
-
-      <blockquote class="quote" data-reveal style="--i:3">
-        <span class="quote-mark" data-speed="-0.08" aria-hidden="true">“</span>
-        <p>{a.quote}</p>
-        <footer>{a.quoteSource}</footer>
-      </blockquote>
-
-      <div class="about-lists">
-        <div data-reveal style="--i:4">
-          <h3 class="mini-title">{a.leadershipTitle}</h3>
-          <ul class="dash-list" role="list">
-            {a.leadership.map((item) => <li>{item}</li>)}
-          </ul>
-        </div>
-        <div data-reveal style="--i:5">
-          <h3 class="mini-title">{a.languagesTitle}</h3>
-          <ul class="langs" role="list">
-            {
-              a.languages.map((l) => (
-                <li>
-                  <b>{l.name}</b>
-                  <span>{l.level}</span>
-                </li>
-              ))
-            }
-          </ul>
-        </div>
-      </div>
-    </div>
   </div>
-  <Ridge edge="bottom" seed={8} />
 </section>

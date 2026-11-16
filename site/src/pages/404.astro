@@ -9,20 +9,23 @@ const en = getContent('en');
   <section class="section dark not-found">
     <div class="wrap">
       <h1 class="nf-code">404</h1>
-      {
-        locales.map((l) => {
-          const t = getContent(l);
-          return (
-            <div class="nf-block" lang={t.htmlLang}>
-              <h2 class="nf-title">{t.notFound.title}</h2>
-              <p class="nf-text">{t.notFound.text}</p>
-              <a class="btn btn-ghost" href={localePath(l)}>
-                {t.notFound.back}
-              </a>
-            </div>
-          );
-        })
-      }
+      <div class="nf-blocks">
+        {
+          locales.map((l) => {
+            const t = getContent(l);
+            return (
+              <div class="nf-block" lang={t.htmlLang}>
+                <h2 class="h3">{t.notFound.title}</h2>
+                <p class="nf-text">{t.notFound.text}</p>
+                <a class="btn btn-primary" href={localePath(l)}>
+                  {t.notFound.back}
+                  <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h11M9 3.5 13.5 8 9 12.5" /></svg>
+                </a>
+              </div>
+            );
+          })
+        }
+      </div>
     </div>
   </section>
 </Base>

@@ -8,44 +8,33 @@ interface Props {
 const { t } = Astro.props;
 const [first, second] = t.hero.nameLines;
 const span = timeline.end - timeline.start;
-let letterIndex = 0;
-const split = (word: string) => [...word].map((ch) => ({ ch, i: letterIndex++ }));
-const lines = [split(first), split(second)];
 ---
 
 <section id="top" class="section dark hero" aria-labelledby="hero-name">
   <div class="wrap hero-grid">
-    <div class="hero-text">
-      <p class="status" data-reveal style="--i:0">{t.hero.status}</p>
+    <div class="hero-copy">
+      <p class="status label" data-reveal>{t.hero.status}</p>
+      <!-- the name: roman, then italic, in one colour -->
       <h1 id="hero-name" class="hero-name">
-        <span class="sr-only">{first} {second}</span>
-        {
-          lines.map((line, li) => (
-            <span class:list={['name-line', { amber: li === 1 }]} aria-hidden="true">
-              {line.map(({ ch, i }) => (
-                <span class="ch" style={`--i:${i}`}>
-                  {ch}
-                </span>
-              ))}
-            </span>
-          ))
-        }
+        <span class="name-line" data-reveal style="--i:1">{first}</span>{' '}
+        <span class="name-line is-italic" data-reveal style="--i:2">{second}</span>
       </h1>
-      <p class="hero-role" data-reveal style="--i:4">{t.hero.role}</p>
-      <p class="hero-tagline" data-reveal style="--i:5">{t.hero.tagline}</p>
-      <p class="hero-pitch" data-reveal style="--i:6" set:html={t.hero.pitch} />
-      <div class="hero-cta" data-reveal style="--i:7">
+      <p class="hero-role" data-reveal style="--i:3">{t.hero.role}</p>
+      <p class="hero-tagline" data-reveal style="--i:3">{t.hero.tagline}</p>
+      <p class="hero-pitch" data-reveal style="--i:4" set:html={t.hero.pitch} />
+      <div class="hero-cta" data-reveal style="--i:5">
         <a class="btn btn-primary" href="#contact">
           {t.hero.ctaPrimary}
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h11M9 3.5 13.5 8 9 12.5"></path></svg>
         </a>
-        <a class="btn btn-ghost" href="#experience">{t.hero.ctaSecondary}</a>
+        <a class="link" href="#experience">{t.hero.ctaSecondary}</a>
       </div>
     </div>
 
-    <!-- The 3D stack graph follows this element (data-anchor). Its labels are real text:
-         without WebGL they render as a small static chart; with WebGL the scene positions them. -->
-    <figure class="tower" data-anchor="tower" data-reveal style="--i:3">
+    <!-- The 3D stack graph follows this element (data-anchor), so it may fade in but never
+         move. Its labels are real text: without WebGL they render as a small static chart;
+         with WebGL the scene positions them. -->
+    <figure class="tower" data-anchor="tower" data-reveal="fade" style="--i:4">
       <ul class="tower-labels" role="list">
         {
           stacks.map((s, i) => (
@@ -70,8 +59,7 @@ const lines = [split(first), split(second)];
           ))
         }
       </ul>
-      <figcaption class="tower-caption">{t.hero.towerCaption}</figcaption>
+      <figcaption class="tower-caption label">{t.hero.towerCaption}</figcaption>
     </figure>
   </div>
-  <div class="scroll-cue" aria-hidden="true"><span></span></div>
 </section>

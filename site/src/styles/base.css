@@ -1,4 +1,4 @@
-/* Reset, page shell, shared utilities, motion states. */
+/* Reset, page shell, type styles, the grid, shared pieces, the reveal. */
 *,
 *::before,
 *::after {
@@ -8,7 +8,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--nav-h) + 8px);
+  /* keeps keyboard focus clear of the fixed nav */
+  scroll-padding-top: var(--nav-h);
   background: var(--ink);
   color-scheme: dark;
 }
@@ -24,8 +25,9 @@ body {
   min-height: 100vh;
   background: var(--ink);
   color: var(--on-ink);
-  font: 400 var(--fs-body) / 1.6 var(--serif);
+  font: 400 var(--fs-body) / var(--lh-body) var(--sans);
   font-synthesis: none;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: clip;
@@ -56,6 +58,11 @@ blockquote {
   margin: 0;
 }
 
+b,
+strong {
+  font-weight: var(--w-strong);
+}
+
 ul[role='list'],
 ol[role='list'] {
   list-style: none;
@@ -63,13 +70,9 @@ ol[role='list'] {
 }
 
 :focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 2px;
-}
-
-.light :focus-visible {
-  outline-color: var(--amber-ink);
 }
 
 ::selection {
@@ -91,16 +94,16 @@ ol[role='list'] {
 
 .skip-link {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 0.625rem;
+  left: 0.625rem;
   z-index: 100;
-  padding: 0.7rem 1rem;
+  padding: 0.75rem 1rem;
   background: var(--amber);
   color: var(--ink);
-  font: 700 0.9rem/1 var(--sans);
+  font: var(--w-medium) var(--fs-small) / 1 var(--sans);
   text-decoration: none;
-  border-radius: 6px;
-  transform: translateY(-160%);
+  border-radius: var(--radius);
+  transform: translateY(-200%);
   transition: transform 0.2s;
 }
 
@@ -129,22 +132,46 @@ ol[role='list'] {
   z-index: 1;
 }
 
-/* ───────── section shells ───────── */
+/* ───────── section shells ─────────
+   Each shell sets the same few colour roles, so everything inside is written once. */
+:root,
+.dark {
+  --fg: var(--on-ink);
+  --fg-soft: var(--on-ink-soft);
+  --fg-muted: var(--on-ink-muted);
+  --line: var(--rule-ink);
+  --line-strong: var(--rule-ink-strong);
+  --accent: var(--amber);
+  --mark: var(--amber);
+}
+
+.light {
+  --fg: var(--text);
+  --fg-soft: var(--text-soft);
+  --fg-muted: var(--text-muted);
+  --line: var(--rule);
+  --line-strong: var(--text-muted);
+  --accent: var(--amber-ink);
+  --mark: var(--amber-fill);
+}
+
 .section {
   position: relative;
   padding: var(--section-pad) var(--gutter);
+  /* a nav link lands the section at the very top; its own padding clears the nav */
+  scroll-margin-top: calc(-1 * var(--nav-h));
 }
 
 /* Dark sections are transparent: the fixed 3D canvas shows through them. */
 .dark {
   background: transparent;
-  color: var(--on-ink);
+  color: var(--fg);
 }
 
-/* Light sections are opaque and slide over the scene. */
+/* Light sections are opaque sheets of paper with a straight edge; they slide over the scene. */
 .light {
   background: var(--paper);
-  color: var(--text);
+  color: var(--fg);
   color-scheme: light;
 }
 
@@ -154,136 +181,125 @@ ol[role='list'] {
   margin: 0 auto;
 }
 
-.kicker {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  font: 600 0.78rem/1 var(--mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--amber);
+/* ───────── grid ─────────
+   One column on a phone; twelve from 720 px. The rail takes the first four columns on a
+   tablet and the first three on a desktop, the content takes the rest. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--gap);
 }
 
-/* the same code-comment mark as the hero tagline */
-.kicker::before {
-  content: '//';
-  letter-spacing: 0;
-  opacity: 0.75;
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .rail {
+    grid-column: 1 / span 4;
+  }
+
+  .main {
+    grid-column: 5 / -1;
+  }
 }
 
-.light .kicker {
-  color: var(--amber-ink);
+@media (min-width: 1024px) {
+  .rail {
+    grid-column: 1 / span 3;
+  }
+
+  .main {
+    grid-column: 4 / -1;
+  }
 }
 
+/* ───────── type styles ───────── */
 .h2 {
-  max-width: 18ch;
-  font: 800 var(--fs-h2) / 0.98 var(--sans);
-  font-stretch: 125%;
-  letter-spacing: -0.01em;
+  font: var(--w-h2) var(--fs-h2) / var(--lh-h2) var(--serif);
+  letter-spacing: var(--tr-h2);
+  text-wrap: balance;
+}
+
+.h3 {
+  font: var(--w-h3) var(--fs-h3) / var(--lh-h3) var(--serif);
+  letter-spacing: var(--tr-h3);
   text-wrap: balance;
 }
 
 .lead {
-  max-width: 60ch;
-  margin-top: 1.25rem;
+  max-width: var(--measure);
   font-size: var(--fs-lead);
-  line-height: 1.55;
-  color: var(--on-ink-soft);
+  line-height: var(--lh-lead);
+  color: var(--fg-soft);
+  text-wrap: pretty;
 }
 
-.light .lead {
-  color: var(--text-soft);
+/* small capitals in the mono: section labels, list titles, captions */
+.label {
+  font: var(--w-medium) var(--fs-label) / 1.45 var(--mono);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--fg-muted);
 }
 
-.section-head {
-  margin-bottom: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+/* years, dates, tags */
+.data {
+  font: 400 var(--fs-data) / 1.5 var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ───────── ridge-shaped section edges (Ridge.astro) ───────── */
-.ridge {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: var(--ridge-h);
-  pointer-events: none;
+/* "Company · note" under a title */
+.byline {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--fg-muted);
 }
 
-.ridge-top {
-  bottom: calc(100% - 1px);
+.byline b {
+  font-weight: var(--w-medium);
+  color: var(--fg);
 }
 
-.ridge-bottom {
-  top: calc(100% - 1px);
+/* ───────── section head: a hairline, the label in the rail, the heading on the content line ───────── */
+.head {
+  /* the label shares the baseline of the first line of the heading */
+  align-items: baseline;
+  row-gap: var(--sp-4);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  margin-bottom: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
 }
 
-.ridge svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  translate: 0 var(--py, 0);
+.head .lead {
+  margin-top: var(--sp-5);
 }
 
-.ridge path {
-  fill: none;
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
+/* ───────── links and buttons ───────── */
+.link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.35em;
+  text-decoration-color: var(--line-strong);
+  transition: text-decoration-color 0.2s;
 }
 
-.ridge .r-fill {
-  fill: var(--paper);
+.link:hover {
+  text-decoration-color: var(--accent);
 }
 
-.ridge .r-back {
-  stroke: rgba(111, 163, 174, 0.5);
-}
-
-.ridge .r-mid {
-  stroke: rgba(242, 179, 61, 0.6);
-}
-
-/* room for the ridge in the dark section it reaches into */
-.dark:has(+ .light) {
-  padding-bottom: calc(var(--section-pad) + var(--ridge-h) * 0.7);
-}
-
-.light + .dark {
-  padding-top: calc(var(--section-pad) + var(--ridge-h) * 0.7);
-}
-
-/* ───────── buttons ───────── */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  min-height: 48px;
-  padding: 0.85rem 1.4rem;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  font: 650 0.95rem/1 var(--sans);
+  gap: 0.625rem;
+  min-height: 3rem;
+  padding: 0 1.375rem;
+  border-radius: var(--radius);
+  font: var(--w-medium) 0.9375rem / 1 var(--sans);
+  white-space: nowrap;
   text-decoration: none;
-  transition:
-    background-color 0.25s,
-    color 0.25s,
-    border-color 0.25s,
-    transform 0.25s var(--ease-out);
-}
-
-.btn svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform 0.25s var(--ease-out);
-}
-
-.btn:hover svg {
-  transform: translateX(3px);
+  transition: background-color 0.2s;
 }
 
 .btn-primary {
@@ -292,44 +308,57 @@ ol[role='list'] {
 }
 
 .btn-primary:hover {
-  background: #ffc75a;
+  background: var(--amber-hover);
 }
 
-.btn-ghost {
-  border-color: rgba(238, 243, 241, 0.35);
-  color: var(--on-ink);
+.icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.25s var(--ease-out);
 }
 
-.btn-ghost:hover {
-  border-color: var(--amber);
-  color: var(--amber);
+.btn .icon {
+  width: 1rem;
+  height: 1rem;
 }
 
-/* ───────── reveal on scroll ─────────
-   The hidden start state applies only when the motion script has started (html.js),
-   so without JavaScript every line of text is visible. */
+a.btn:hover .icon {
+  transform: translateX(2px);
+}
+
+a.btn[download]:hover .icon {
+  transform: translateY(2px);
+}
+
+/* ───────── reveal ─────────
+   Content comes in once and stays. The hidden start state applies only when the script has
+   started (html.js), so without JavaScript every line is visible. */
 .js [data-reveal] {
   opacity: 0;
-  transform: translateY(28px);
-  /* going out: quicker and all at once */
+  transform: translateY(0.75rem);
   transition:
-    opacity 0.55s var(--ease-out),
-    transform 0.55s var(--ease-out);
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 60ms);
 }
 
-/* left past the top edge: it goes out upwards, and comes back in from above */
-.js [data-reveal].is-above {
-  transform: translateY(-28px);
+/* the anchors of the 3D objects are measured by the scene: they fade, they never move */
+.js [data-reveal='fade'] {
+  transform: none;
 }
 
 .js [data-reveal].is-in {
   opacity: 1;
   transform: none;
-  transition-duration: 0.9s;
-  transition-delay: calc(var(--i, 0) * 70ms);
 }
 
-/* Safety net: if the motion script never starts, the head script adds this after a delay. */
+/* Safety net: if the script never starts, the head script adds this after a delay. */
 .reveal-all [data-reveal] {
   opacity: 1 !important;
   transform: none !important;
@@ -348,9 +377,5 @@ ol[role='list'] {
   .js [data-reveal] {
     opacity: 1;
     transform: none;
-  }
-
-  [data-speed] {
-    translate: none !important;
   }
 }

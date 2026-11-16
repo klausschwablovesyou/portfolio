@@ -1,6 +1,5 @@
 ---
 import type { SiteContent } from '../i18n';
-import Ridge from './Ridge.astro';
 
 interface Props {
   t: SiteContent;
@@ -10,23 +9,21 @@ const e = t.earlier;
 ---
 
 <section id="earlier" class="section light earlier" aria-labelledby="earlier-title">
-  <div class="wrap earlier-grid">
-    <div class="section-head">
-      <p class="kicker" data-reveal>{e.kicker}</p>
-      <h2 id="earlier-title" class="h2" data-reveal style="--i:1">{e.heading}</h2>
-    </div>
+  <div class="wrap">
+    <header class="head grid">
+      <p class="label rail" data-reveal>{e.kicker}</p>
+      <h2 id="earlier-title" class="h2 main" data-reveal style="--i:1">{e.heading}</h2>
+    </header>
     <ol class="ledger" role="list">
       {
         e.rows.map((row, i) => (
-          <li data-reveal style={`--i:${i}`}>
-            <span class="yr">{row.years}</span>
-            <span class="what">
-              <b>{row.name}</b> — {row.what}
-            </span>
+          <li class="ledger-row grid" data-reveal style={`--i:${i}`}>
+            <span class="yr data">{row.years}</span>
+            <b class="who">{row.name}</b>
+            <span class="what">{row.what}</span>
           </li>
         ))
       }
     </ol>
   </div>
-  <Ridge edge="bottom" seed={33} />
 </section>

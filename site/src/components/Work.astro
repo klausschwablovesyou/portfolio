@@ -11,27 +11,29 @@ const w = t.work;
 
 <section id="work" class="section dark work" aria-labelledby="work-title">
   <div class="wrap">
-    <div class="section-head">
-      <p class="kicker" data-reveal>{w.kicker}</p>
-      <h2 id="work-title" class="h2" data-reveal style="--i:1">{w.heading}</h2>
-      <p class="lead" data-reveal style="--i:2">{w.intro}</p>
-    </div>
+    <header class="head grid">
+      <p class="label rail" data-reveal>{w.kicker}</p>
+      <div class="main">
+        <h2 id="work-title" class="h2" data-reveal style="--i:1">{w.heading}</h2>
+        <p class="lead" data-reveal style="--i:2">{w.intro}</p>
+      </div>
+    </header>
 
-    <ol class="cards" role="list">
+    <!-- An index, not cards: one row per product, the years in the rail. -->
+    <ol class="works" role="list">
       {
         w.cards.map((card, i) => {
           const meta = workMeta[i];
           return (
-            <li class="card-cell" data-speed-desktop={i % 2 ? '-0.05' : '0'} data-reveal style={`--i:${i % 2}`}>
-              <article class="card" data-tilt>
-                <span class="card-glare" aria-hidden="true" />
-                <p class="card-years">{meta.years}</p>
-                <h3 class="card-name">
+            <li class="work-row grid" data-reveal>
+              <p class="work-years data">{meta.years}</p>
+              <div class="work-title">
+                <h3 class="h3">
                   {meta.url ? (
-                    <a class="card-link" href={meta.url} target="_blank" rel="noopener noreferrer">
+                    <a class="work-link" href={meta.url} target="_blank" rel="noopener noreferrer">
                       {card.name}
-                      <svg class="card-ext" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M7 17 17 7M9 7h8v8" />
+                      <svg class="icon work-ext" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M4.5 11.5 11.5 4.5M5.5 4.5h6v6" />
                       </svg>
                       <span class="sr-only">{w.newTab}</span>
                     </a>
@@ -39,16 +41,18 @@ const w = t.work;
                     card.name
                   )}
                 </h3>
-                <p class="card-company">
-                  {card.company} <span>· {card.role}</span>
+                <p class="byline">
+                  <b>{card.company}</b> <span>· {card.role}</span>
                 </p>
-                <p class="card-sentence">{card.sentence}</p>
+              </div>
+              <div class="work-body">
+                <p class="work-sentence">{card.sentence}</p>
                 <ul class="tags" role="list">
                   {meta.tags.map((tag) => (
                     <li>{tag}</li>
                   ))}
                 </ul>
-              </article>
+              </div>
             </li>
           );
         })

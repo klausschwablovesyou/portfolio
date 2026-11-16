@@ -6,12 +6,14 @@ interface Props {
 }
 const { t } = Astro.props;
 const year = new Date().getFullYear();
-const name = t.locale === 'hu' ? 'Németh Tibor' : 'Tibor Németh';
+const [first, second] = t.hero.nameLines;
 ---
 
 <footer class="site-footer dark">
   <div class="wrap footer-inner">
-    <span class="footer-name">{name}</span>
-    <span class="footer-meta">© {year} · {t.footer.builtWith}</span>
+    <a class="footer-name" href="#top" aria-label={t.a11y.home}>
+      <span aria-hidden="true">{first} <i>{second}</i></span>
+    </a>
+    <span class="footer-meta data">© {year} · {t.footer.builtWith}</span>
   </div>
 </footer>
