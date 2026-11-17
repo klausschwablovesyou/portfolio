@@ -456,7 +456,7 @@ Style recalculations per frame while scrolling: 8.7 before, 1.2 after.
 Things to know when changing it further:
 
 - Multisampling the float target is the most expensive single thing in a frame: at 1440 × 900 at 2x the hero costs 11.4 ms with 4 samples, 8.5 with 2 and 6.0 with none.
-- With the sun behind the planet, as seen from the camera, the globe is almost all night side: its light is the atmospheric rim and the rings. That is intended (and physically right); a larger lit crescent needs another sun direction, which also turns the light of the landscape.
+- The planet is the one body that is not lit by the scene's sun: see the fifth revision below.
 - An opaque body of the cosmos (globe, moons, satellite) is flagged `transparent`, so it is drawn after the stars and covers them. A see-through object is always drawn after the opaque ones, whatever its `renderOrder`: the glow of the landscape's sky relies on the depth test to stay behind the land.
 - The landscape is baked for the height the mountains have at the current aspect ratio and is baked again when that changes. The baked stretch covers a travel of 46 world units before the end of the page (`TRAVEL` in `terrain.ts`) and screens up to 21:9.
 - Anchor elements (`data-anchor`) must not be moved by CSS transforms: the scene works from layout positions. The hero figure is revealed with `data-reveal="fade"`, opacity only.
@@ -468,4 +468,22 @@ Left for the owner to decide:
 - The printed CV still uses Archivo and Source Serif 4, so the site and the PDF no longer share their typefaces.
 - Two other typographic directions were tried and are kept, unfinished, on the branches `wip/design-swiss` (Geist only) and `wip/design-heritage` (Archivo, Source Serif 4 and JetBrains Mono, set far more quietly).
 - The portrait is shown in greyscale.
-- The first screen loads about 330 kB of fonts (the two Newsreader files with the optical-size axis are 130 to 150 kB each); the Hungarian page loads the Latin Extended files on top.
+- The first screen loads about 235 kB of fonts (Newsreader with its optical-size axis is 132 kB, Unbounded 51 kB); the Hungarian page loads the Latin Extended files on top.
+
+### Fifth revision (2026-11-17, same branch)
+
+The owner's feedback on the fourth revision: the backgrounds are better; the mix of upright
+and italic type is not nice, and the name should look more like a film title, in another
+typeface; the visual elements that moved with the scroll are missed, among them the line of
+the Experience section; the planet covered its own ring. The mountain-ridge (torn) section
+edges were shown to the owner again and declined: the edges stay straight.
+
+| Was | Now | Where |
+|---|---|---|
+| The name set upright, then italic; an italic monogram, footer name, contact heading and quote | No italics anywhere. The italic Newsreader files are no longer loaded. | `components/Nav.astro`, `Footer.astro`, `styles/sections.css`, `layouts/Base.astro` |
+| The name in the display serif | The name is a title card: wide, thin capitals of **Unbounded** (a fourth typeface, used for the name, the role under it, the monogram and the footer name only), lit softly from above, coming in letter by letter out of a blur. The role stands under it in small spaced capitals. | `components/Hero.astro`, `styles/tokens.css`, `styles/sections.css`, `styles/base.css`, `layouts/Base.astro` |
+| Planet backlit: a dark globe whose shadow hid the near arc of its rings | The planet has a light of its own, from the front right: a banded, mostly lit globe; the near arc of the rings passes in front of it, the far arc behind it. The ring plane is tipped with the planet's height in the view, so the rings stay open by the same amount. | `scene/cosmos/planet.ts` |
+| No scroll-linked motion in the page (the fourth revision had removed it together with its layout reads) | `motion.ts` moves elements with `data-speed` and fills lines with `data-track`. It measures when the layout changes and only does arithmetic while scrolling: a scroll frame reads nothing from the page. | `scripts/motion.ts`, `styles/base.css` |
+| A still portrait, a plain quote | The photograph drifts inside its frame; a large pale quotation mark (the raised mark of the page's language) drifts above the quote. | `components/About.astro`, `styles/sections.css` |
+| Selected work as one row per product | From 1024 px two columns, the right one lower and drifting. | `components/Work.astro`, `styles/sections.css` |
+| The roles of the Experience section as a plain list with one amber mark | A line in the left margin fills as the page scrolls through the list, and the mark of each role lights up when the fill reaches it. | `components/Experience.astro`, `styles/sections.css`, `scripts/motion.ts` |

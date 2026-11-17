@@ -94,7 +94,7 @@ Every response gets cache and security headers (`backend/src/http/headers.ts`):
 `site/src/scripts/scene/` draws two layers on one WebGL canvas, loaded on idle after the text:
 
 - **Background** (`cosmos/`): a nebula and star dust, an endless star field with parallax, a
-  backlit ringed planet, a turning satellite and occasional shooting stars. Behind the contact
+  ringed planet, a turning satellite and occasional shooting stars. Behind the contact
   section a mountain landscape at dusk is drawn over it (`terrain.ts`), baked into a texture once.
 - **Anchored objects**, tied to elements of the page: the career drawn as a git graph in the hero
   (`graph.ts`) and a steel throwing star (`shuriken.ts`).
