@@ -78,7 +78,7 @@ const LAP = 1.3;
  * the reading progress and not the scroll distance, so it ends in the same place on a page of
  * any length.
  */
-const PLANET = { depth: 190, size: 0.18, inset: 0.055, from: -0.57, to: 0.62, above: -0.05 };
+const PLANET = { depth: 190, size: 0.18, inset: 0.055, from: -0.5, to: 0.62, above: 0.02 };
 
 /*
  * The satellite is nearer, so it rises faster as the page scrolls, leaves at the top and comes
@@ -112,7 +112,7 @@ export function createCosmos(small: boolean): Cosmos {
 
   const sky = createSky(shared);
   const stars = createStars(shared);
-  const planet = createPlanet(shared);
+  const planet = createPlanet();
   const satellite = createSatellite(shared);
   const meteor = createMeteor(shared);
 

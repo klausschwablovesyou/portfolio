@@ -5,6 +5,7 @@ import {
   Group,
   LinearFilter,
   Mesh,
+  Quaternion,
   RedFormat,
   RingGeometry,
   ShaderMaterial,
@@ -13,14 +14,23 @@ import {
   Vector3,
 } from 'three';
 import { FILL_COLOR, SUN_COLOR } from '../sun';
-import { rng, type Shared } from './shared';
+import { rng } from './shared';
 
 /**
- * The one landmark of the sky: a gas giant with rings, far away and backlit. The sun is low
- * behind it on the right, so the globe shows a thin lit crescent with a soft terminator and an
- * atmosphere that glows along the limb; the night side is almost the colour of the sky. The
- * rings are a real disc with bands and gaps that scatters the light forward; the planet's
- * shadow falls across them and theirs across the planet. Two small moons run round it.
+ * The planet is the one body that is not lit by the sun of ../sun.ts. Seen from behind, a ringed
+ * planet hides the near arc of its rings in its own shadow, and reads as a ball in front of a
+ * hoop. So its light comes from the same side (the right) but from the front: the rings pass
+ * in front of the globe in full light, their shadow lies on the globe, and the globe's shadow
+ * falls on the far arc behind it. View space: x right, y up, z towards the viewer.
+ */
+const PLANET_LIGHT = new Vector3(0.38, 0.32, 0.87).normalize();
+
+/**
+ * The one landmark of the sky: a gas giant with rings, far away. Most of the banded globe is
+ * lit, with a soft terminator on the left and a thin atmosphere along the limb. The rings are
+ * a real disc with bands and gaps: the near arc passes in front of the globe, the far arc
+ * behind it; the planet's shadow falls across the far arc and the rings' shadow across the
+ * globe. Two small moons run round it.
  *
  * Built with radius 1 around the origin; cosmos/index.ts places and scales it. It is small on
  * screen (about 80 px in radius), so every pixel of it can afford a careful shader.
@@ -31,6 +41,9 @@ export interface Planet {
   dispose(): void;
 }
 
+/** how far the ring plane is tipped towards a camera level with the planet, and its roll */
+const TIP = 0.232;
+const ROLL = 0.3;
 /** inner and outer radius of the rings, in planet radii */
 const RING = [1.28, 2.24];
 
@@ -102,7 +115,7 @@ const globeFragment = /* glsl */ `
     float mu = max(dot(n, v), 0.0);
     // a soft terminator, and the day side a little darker towards its own limb
     float day = smoothstep(-0.14, 0.34, ndl);
-    vec3 col = albedo * uSun * day * (0.3 + 0.7 * pow(max(ndl, 0.0), 0.55));
+    vec3 col = albedo * uSun * day * (0.25 + 0.75 * pow(max(ndl, 0.0), 0.7));
 
     // the rings' shadow: from this point towards the sun, does the ray cross the ring plane?
     if (uLightFrame.y * vFrame.y < 0.0) {
@@ -119,7 +132,7 @@ const globeFragment = /* glsl */ `
     // and a hair of it all the way round
     float limb = pow(1.0 - mu, 2.6);
     float reach = smoothstep(-0.6, 0.25, ndl);
-    col += uAir * limb * (0.045 + 1.5 * reach * reach);
+    col += uAir * limb * (0.03 + 0.4 * reach * reach);
 
     // the silhouette is smoothed here, by fading the last pixel of the limb: the multisampling
     // of the picture is too coarse for an edge this dark against rings this bright
@@ -131,10 +144,13 @@ const globeFragment = /* glsl */ `
 const ringVertex = /* glsl */ `
   varying vec3 vFrame;
   varying vec3 vV;
+  varying vec3 vUp;
   void main() {
     vFrame = position;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     vV = -mv.xyz;
+    // the normal of the ring plane, in view space
+    vUp = normalMatrix * vec3(0.0, 1.0, 0.0);
     gl_Position = projectionMatrix * mv;
   }
 `;
@@ -149,6 +165,7 @@ const ringFragment = /* glsl */ `
   uniform vec2 uRing;
   varying vec3 vFrame;
   varying vec3 vV;
+  varying vec3 vUp;
   void main() {
     float r = length(vFrame.xz);
     float k = (r - uRing.x) / (uRing.y - uRing.x);
@@ -158,15 +175,21 @@ const ringFragment = /* glsl */ `
     // the planet's shadow: how close does the ray towards the sun pass the centre of the globe?
     float along = dot(vFrame, uLightFrame);
     float miss = sqrt(max(dot(vFrame, vFrame) - along * along, 0.0));
-    float shadow = along < 0.0 ? smoothstep(0.93, 1.03, miss) : 1.0;
+    float shadow = along < 0.0 ? mix(0.1, 1.0, smoothstep(0.88, 1.08, miss)) : 1.0;
 
-    // dust scatters forward: the thin parts glow when the sun is behind them, the thick parts
-    // block more than they pass
     vec3 v = normalize(vV);
-    float forward = pow(max(dot(v, -uLight) * 0.5 + 0.5, 0.0), 2.0);
-    float through = density * exp(-density * 1.5) * 1.9;
+    vec3 up = normalize(vUp);
+    float sunHeight = dot(up, uLight); // how steeply the light meets the ring plane, signed
     vec3 tint = mix(uSand, uCool, smoothstep(0.55, 1.0, k) * 0.5);
-    vec3 col = tint * uSun * (through * (0.35 + 1.1 * forward) + density * 0.05) * shadow;
+    vec3 col;
+    if (sunHeight * dot(up, v) > 0.0) {
+      // the lit face is the one we see: the dust shines where it is dense
+      col = tint * uSun * density * (0.3 + 0.9 * abs(sunHeight));
+    } else {
+      // the unlit face: only what comes through the thin parts
+      col = tint * uSun * density * exp(-density * 1.5) * 0.9;
+    }
+    col *= shadow;
 
     gl_FragColor = vec4(col, density * 0.82);
     #include <colorspace_fragment>
@@ -230,26 +253,26 @@ function ringProfile(): DataTexture {
   return texture;
 }
 
-export function createPlanet(shared: Shared): Planet {
+export function createPlanet(): Planet {
   const group = new Group();
 
   // the planet's own frame: y is its axis, the rings and orbits lie in the x–z plane.
-  // Tipped towards the camera and rolled, so the rings open into ellipses that climb to the
-  // right, away from the page column
+  // Rolled, so the rings climb to the right, away from the page column, and tipped towards
+  // the camera just enough that the near arc crosses the lower part of the globe (see update)
   const frame = new Group();
-  frame.rotation.set(0.33, 0, 0.3);
+  frame.rotation.set(TIP, 0, ROLL);
   group.add(frame);
 
   // the frame is only rotated against the view, and the camera barely turns, so view space
-  // stands in for world space when the sun is brought into the frame of the rings
-  const toFrame = frame.quaternion.clone().invert();
+  // stands in for world space when the light is brought into the frame of the rings
+  const toFrame = new Quaternion();
 
   const profile = ringProfile();
   const lightFrame = new Vector3();
   const light = {
-    uLight: shared.uLight,
+    uLight: { value: PLANET_LIGHT },
     uLightFrame: { value: lightFrame },
-    uSun: { value: SUN_COLOR.clone().multiplyScalar(1.5) },
+    uSun: { value: SUN_COLOR.clone().multiplyScalar(0.7) },
     uFill: { value: FILL_COLOR },
   };
   const ring = { tRing: { value: profile }, uRing: { value: RING } };
@@ -324,7 +347,12 @@ export function createPlanet(shared: Shared): Planet {
     update(time) {
       globeMaterial.uniforms.uSpin.value = time * 0.035;
       for (const m of moons) m.arm.rotation.y = m.phase + time * m.rate;
-      lightFrame.copy(shared.uLight.value).applyQuaternion(toFrame);
+      // The planet climbs through the view as the page scrolls, so the camera sees it first
+      // from above and at the end from below. Tipping the frame by that same angle keeps the
+      // rings open by the same amount all the way, instead of closing to a line.
+      frame.rotation.x = TIP + Math.atan2(group.position.y, -group.position.z);
+      toFrame.copy(frame.quaternion).invert();
+      lightFrame.copy(PLANET_LIGHT).applyQuaternion(toFrame);
     },
     dispose() {
       sphere.dispose();

@@ -5,6 +5,9 @@ import { Color, Vector3 } from 'three';
  * look down -z, x is to the right, y is up): low, to the right, behind the scene. So every body
  * is backlit: a thin warm edge on its right side, the rest in shadow, with a faint cool fill
  * from the front-left so the form still reads. That keeps the picture dark behind the text.
+ *
+ * The planet is the one exception: it is lit from the front right, so its rings read as rings
+ * (see PLANET_LIGHT in cosmos/planet.ts).
  */
 export const SUN = new Vector3(0.61, 0.14, -0.78).normalize();
 
