@@ -10,6 +10,14 @@ export default defineConfig({
   trailingSlash: 'ignore',
   build: { format: 'directory' },
   devToolbar: { enabled: false },
-  // three.js is one ~605 kB chunk (152 kB gzipped), loaded on idle after the text.
-  vite: { build: { chunkSizeWarningLimit: 700 } },
+  vite: {
+    build: {
+      // three.js is one ~605 kB chunk (152 kB gzipped), loaded on idle after the text.
+      chunkSizeWarningLimit: 700,
+      // A font file is never inlined into the CSS as a data: URL, however small it is: the
+      // backend's content security policy takes fonts from the site itself only
+      // (font-src 'self'). The Cyrillic Extended file of Unbounded is under Vite's 4 kB limit.
+      assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
+    },
+  },
 });
