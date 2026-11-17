@@ -77,8 +77,8 @@
   align-items: center;
   height: 2.75rem;
   padding-right: var(--sp-4);
-  font: var(--w-medium) 1.375rem / 1 var(--serif);
-  letter-spacing: -0.02em;
+  font: 400 0.9375rem / 1 var(--display);
+  letter-spacing: 0.18em;
   text-decoration: none;
   transition: color 0.3s;
 }
@@ -245,22 +245,45 @@
   background: var(--amber);
 }
 
+/* The name is the title card of the page: wide capitals in the display face, lit softly from
+   above. They come in letter by letter (the reveal is in base.css). */
 .hero-name {
   margin-top: var(--sp-5);
   /* the stems of T and N stand on the left edge of the text below */
   margin-left: -0.03em;
-  font: var(--w-display) var(--fs-display) / var(--lh-display) var(--serif);
-  letter-spacing: var(--tr-display);
+  font: 250 clamp(2.75rem, 14vw, 5.4rem) / 1.2 var(--display);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 0 1.5rem rgb(150 185 255 / 0.2));
 }
 
 .name-line {
   display: block;
+  white-space: nowrap;
 }
 
+.hero-name .ch {
+  display: inline-block;
+  background: linear-gradient(180deg, #fff 8%, #f1eee6 48%, #aebac6 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (forced-colors: active) {
+  .hero-name .ch {
+    background: none;
+    color: CanvasText;
+  }
+}
+
+/* the role, set as the line under a film title: small, spaced capitals */
 .hero-role {
   margin-top: var(--sp-6);
-  font: 400 var(--fs-deck) / 1.2 var(--serif);
-  letter-spacing: var(--tr-deck);
+  font: 300 clamp(0.6875rem, 0.5rem + 0.8vw, 0.9375rem) / 1.6 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-wrap: balance;
 }
 
 /* the owner's aside, set as what it is: a code comment */
@@ -456,6 +479,11 @@
 
   .hero-copy {
     grid-column: 1 / span 6;
+  }
+
+  /* the copy takes half of the page here: the name must not reach into the graph */
+  .hero-name {
+    font-size: min(5.4rem, 7vw);
   }
 
   .hero-copy::before {
@@ -1292,8 +1320,9 @@
 }
 
 .footer-name {
-  font: 400 1.25rem / 1.2 var(--serif);
-  letter-spacing: -0.01em;
+  font: 300 0.8125rem / 1.2 var(--display);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
   text-decoration: none;
 }
 

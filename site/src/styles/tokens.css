@@ -1,6 +1,7 @@
 /*
- * Design tokens. Three voices: Newsreader (display serif, with its optical-size axis) for the
- * name and the headings, Geist for text and UI, Geist Mono for data (years, tags, small labels).
+ * Design tokens. Four voices: Unbounded (wide capitals) for the name alone, Newsreader (serif,
+ * with its optical-size axis) for the headings, Geist for text and UI, Geist Mono for data
+ * (years, tags, small labels).
  */
 
 /* Local fonts resized to the metrics of the web fonts, so the swap barely moves the text. */
@@ -62,6 +63,8 @@
   --serif: 'Newsreader Variable', 'Newsreader Fallback', Georgia, 'Times New Roman', serif;
   --sans: 'Geist Variable', 'Geist Fallback', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   --mono: 'Geist Mono Variable', 'Geist Mono Fallback', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* the name, the role under it and the monogram: wide capitals, as on the title card of a film */
+  --display: 'Unbounded Variable', 'Avenir Next', 'Century Gothic', system-ui, sans-serif;
 
   /* type scale: a perfect fourth (17 · 21 · 30 · [40 · 53] · 64 · … · 144) on a wide screen,
      each step fluid between a 390 px and a 1440 px viewport */

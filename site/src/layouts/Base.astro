@@ -2,12 +2,14 @@
 import '@fontsource-variable/newsreader/opsz.css';
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
+import '@fontsource-variable/unbounded/wght.css';
 import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/sections.css';
-// The two files the first screen is set in; the browser fetches the others when it meets them.
+// The three files the first screen is set in; the browser fetches the others when it meets them.
 import serifUrl from '@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2?url';
 import sansUrl from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
+import displayUrl from '@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2?url';
 
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
@@ -34,7 +36,7 @@ const { t, full = true, title = t.meta.title } = Astro.props;
     <meta name="theme-color" content="#0B1620" />
     <meta name="color-scheme" content="dark light" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    {[serifUrl, sansUrl].map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
+    {[serifUrl, sansUrl, displayUrl].map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
     {
       full &&
         locales.map((l) => <link rel="alternate" hreflang={l} href={localePath(l)} />)

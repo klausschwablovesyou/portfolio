@@ -8,16 +8,28 @@ interface Props {
 const { t } = Astro.props;
 const [first, second] = t.hero.nameLines;
 const span = timeline.end - timeline.start;
+// The name is set letter by letter, so the letters can come in one after the other:
+// c is the place of the letter in the whole name, k its distance from the middle of its line.
+let place = 0;
+const letters = (word: string) => {
+  const chars = [...word];
+  return chars.map((ch, n) => ({ ch, c: place++, k: n - (chars.length - 1) / 2 }));
+};
+const nameLines = [letters(first), letters(second)];
 ---
 
 <section id="top" class="section dark hero" aria-labelledby="hero-name">
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <p class="status label" data-reveal>{t.hero.status}</p>
-      <!-- the name: two lines in one style and one colour -->
-      <h1 id="hero-name" class="hero-name">
-        <span class="name-line" data-reveal style="--i:1">{first}</span>{' '}
-        <span class="name-line" data-reveal style="--i:2">{second}</span>
+      <!-- the name as a film title: wide capitals that come in letter by letter -->
+      <h1 id="hero-name" class="hero-name" aria-label={`${first} ${second}`}>
+        <span class="name-line" data-reveal="title" aria-hidden="true">
+          {nameLines[0].map(({ ch, c, k }) => <span class="ch" style={`--c:${c};--k:${k}`}>{ch}</span>)}
+        </span>{' '}
+        <span class="name-line" data-reveal="title" aria-hidden="true">
+          {nameLines[1].map(({ ch, c, k }) => <span class="ch" style={`--c:${c};--k:${k}`}>{ch}</span>)}
+        </span>
       </h1>
       <p class="hero-role" data-reveal style="--i:3">{t.hero.role}</p>
       <p class="hero-tagline" data-reveal style="--i:3">{t.hero.tagline}</p>
