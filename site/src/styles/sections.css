@@ -579,6 +579,12 @@
   height: 100%;
 }
 
+/* larger than its frame, so it can drift inside it without showing an edge */
+.portrait-drift {
+  height: 100%;
+  scale: 1.18;
+}
+
 /* black and white: the photograph takes the palette of the page instead of fighting it */
 .portrait img {
   object-fit: cover;
@@ -588,8 +594,27 @@
 
 /* a pull quote: the opening mark hung in the margin */
 .quote {
+  position: relative;
   max-width: 40rem;
   margin-top: var(--sp-7);
+}
+
+/* A large pale quotation mark above the end of the quote's first line; it drifts at its own
+   speed. The column is its stacking context, so it lies behind the paragraph and the quote. */
+.about-body > .main {
+  isolation: isolate;
+}
+
+.quote-mark {
+  position: absolute;
+  z-index: -1;
+  top: -0.34em;
+  right: 0;
+  font: var(--w-display) clamp(8rem, 5.5rem + 10vw, 13.5rem) / 1 var(--serif);
+  color: var(--mark);
+  opacity: 0.28;
+  pointer-events: none;
+  user-select: none;
 }
 
 .quote p {
