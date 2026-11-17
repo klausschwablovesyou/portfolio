@@ -19,13 +19,13 @@ const w = t.work;
       </div>
     </header>
 
-    <!-- An index, not cards: one row per product, the years in the rail. -->
+    <!-- One row per product on small screens; two staggered columns from 1024 px. -->
     <ol class="works" role="list">
       {
         w.cards.map((card, i) => {
           const meta = workMeta[i];
           return (
-            <li class="work-row grid" data-reveal>
+            <li class="work-row grid" data-reveal data-speed-desktop={i % 2 ? '-0.05' : undefined}>
               <p class="work-years data">{meta.years}</p>
               <div class="work-title">
                 <h3 class="h3">
