@@ -953,7 +953,35 @@
   }
 }
 
-/* ───────── experience ───────── */
+/* ───────── experience ─────────
+   The line in the left margin fills as the page scrolls through the list, and the mark of
+   each role lights up when the fill reaches it. scripts/motion.ts drives both and puts the
+   class has-track on the wrapper; until then the line is full and every mark is lit. */
+.jobs-wrap {
+  position: relative;
+}
+
+.jobs-line {
+  position: absolute;
+  top: calc(var(--sp-6) + 0.625rem);
+  bottom: var(--sp-7);
+  left: calc(-0.6875rem - 0.5px);
+  width: 1px;
+  background: var(--line);
+}
+
+.jobs-fill {
+  position: absolute;
+  inset: 0 -0.5px;
+  background: var(--mark);
+  transform-origin: top;
+  will-change: transform;
+}
+
+.has-track .jobs-fill {
+  transform: scaleY(var(--fill, 0));
+}
+
 .job {
   position: relative;
   align-items: baseline;
@@ -973,16 +1001,32 @@
   color: var(--fg);
 }
 
-/* the current role: one amber mark, hung in the margin */
-.job.now .when::before {
-  content: '';
+/* the mark of a role, on the line in the margin */
+.job-dot {
   position: absolute;
-  left: -0.875rem;
-  width: 0.375rem;
-  height: 0.375rem;
-  margin-top: 0.55em;
+  left: -0.9375rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.46em;
+  border: 1px solid var(--mark);
   border-radius: 50%;
   background: var(--mark);
+  transition:
+    background-color 0.4s,
+    border-color 0.4s,
+    box-shadow 0.4s;
+}
+
+/* the current role keeps a halo */
+.job.now .job-dot {
+  box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--mark) 20%, transparent);
+}
+
+/* not reached yet: an open ring */
+.has-track .job-dot:not(.is-reached) {
+  border-color: var(--line-strong);
+  background: var(--paper);
+  box-shadow: none;
 }
 
 .points,

@@ -15,31 +15,37 @@ const x = t.experience;
       <h2 id="xp-title" class="h2 main" data-reveal style="--i:1">{x.heading}</h2>
     </header>
 
-    <ol class="jobs" role="list">
-      {
-        x.jobs.map((job) => (
-          <li class:list={['job', 'grid', { now: job.current }]} data-reveal>
-            <p class="rail job-when data">
-              <span class="when">{job.when}</span>
-              <span class="len">{job.length}</span>
-            </p>
-            <article class="main job-body">
-              <h3 class="h3">{job.title}</h3>
-              <p class="byline">
-                <b>{job.org}</b> <span>· {job.orgNote}</span>
+    <!-- The line in the margin fills as the page scrolls through the list, and the mark of
+         each role lights up when the fill reaches it (data-track in scripts/motion.ts). -->
+    <div class="jobs-wrap">
+      <span class="jobs-line" data-track aria-hidden="true"><span class="jobs-fill" data-track-fill></span></span>
+      <ol class="jobs" role="list">
+        {
+          x.jobs.map((job) => (
+            <li class:list={['job', 'grid', { now: job.current }]} data-reveal>
+              <p class="rail job-when data">
+                <span class="job-dot" data-track-mark aria-hidden="true"></span>
+                <span class="when">{job.when}</span>
+                <span class="len">{job.length}</span>
               </p>
-              {job.points && (
-                <ul class="points" role="list">
-                  {job.points.map((p) => (
-                    <li set:html={p} />
-                  ))}
-                </ul>
-              )}
-              {job.desc && <p class="desc" set:html={job.desc} />}
-            </article>
-          </li>
-        ))
-      }
-    </ol>
+              <article class="main job-body">
+                <h3 class="h3">{job.title}</h3>
+                <p class="byline">
+                  <b>{job.org}</b> <span>· {job.orgNote}</span>
+                </p>
+                {job.points && (
+                  <ul class="points" role="list">
+                    {job.points.map((p) => (
+                      <li set:html={p} />
+                    ))}
+                  </ul>
+                )}
+                {job.desc && <p class="desc" set:html={job.desc} />}
+              </article>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
   </div>
 </section>
