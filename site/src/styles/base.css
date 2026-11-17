@@ -336,6 +336,13 @@ a.btn[download]:hover .icon {
   transform: translateY(2px);
 }
 
+/* ───────── parallax ─────────
+   scripts/motion.ts writes --py on elements with data-speed while the page scrolls. */
+[data-speed],
+[data-speed-desktop] {
+  translate: 0 var(--py, 0px);
+}
+
 /* ───────── reveal ─────────
    Content comes in once and stays. The hidden start state applies only when the script has
    started (html.js), so without JavaScript every line is visible. */
