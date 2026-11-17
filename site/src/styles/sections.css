@@ -83,10 +83,6 @@
   transition: color 0.3s;
 }
 
-.monogram i {
-  font-style: italic;
-}
-
 .nav-links {
   display: none;
   margin-left: auto;
@@ -259,10 +255,6 @@
 
 .name-line {
   display: block;
-}
-
-.name-line.is-italic {
-  font-style: italic;
 }
 
 .hero-role {
@@ -566,14 +558,14 @@
   filter: grayscale(1) contrast(1.05);
 }
 
-/* a pull quote: italic, the opening mark hung in the margin */
+/* a pull quote: the opening mark hung in the margin */
 .quote {
   max-width: 40rem;
   margin-top: var(--sp-7);
 }
 
 .quote p {
-  font: italic var(--w-h2) var(--fs-deck) / var(--lh-deck) var(--serif);
+  font: var(--w-h2) var(--fs-deck) / var(--lh-deck) var(--serif);
   letter-spacing: var(--tr-deck);
   text-indent: -0.42em;
   text-wrap: pretty;
@@ -1180,7 +1172,7 @@
 
 .contact-heading {
   margin-left: -0.03em;
-  font: italic var(--w-display) var(--fs-h1) / 1 var(--serif);
+  font: var(--w-display) var(--fs-h1) / 1 var(--serif);
   letter-spacing: var(--tr-display);
 }
 
@@ -1305,10 +1297,6 @@
   text-decoration: none;
 }
 
-.footer-name i {
-  font-style: italic;
-}
-
 .footer-meta {
   color: var(--fg-muted);
 }
@@ -1327,7 +1315,7 @@
 
 .nf-code {
   margin: 0 0 var(--sp-7) -0.03em;
-  font: italic var(--w-display) var(--fs-display) / var(--lh-display) var(--serif);
+  font: var(--w-display) var(--fs-display) / var(--lh-display) var(--serif);
   letter-spacing: var(--tr-display);
 }
 

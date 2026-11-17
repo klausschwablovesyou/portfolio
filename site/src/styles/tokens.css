@@ -14,16 +14,6 @@
 }
 
 @font-face {
-  font-family: 'Newsreader Fallback';
-  font-style: italic;
-  src: local('Georgia Italic'), local('Georgia-Italic');
-  size-adjust: 85%;
-  ascent-override: 87%;
-  descent-override: 31%;
-  line-gap-override: 0%;
-}
-
-@font-face {
   font-family: 'Geist Fallback';
   font-weight: 100 900;
   src: local('Arial');
