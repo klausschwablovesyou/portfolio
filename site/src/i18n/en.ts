@@ -169,6 +169,12 @@ const en: SiteContent = {
         sentence: 'Maintaining existing functionality, and researching and implementing new features, in the 10XOne ERP.',
       },
       {
+        name: 'Hotel Tiliana website',
+        company: 'Freelance',
+        role: 'Front-end developer',
+        sentence: 'A fast, statically generated JAMstack website for a Budapest wellness hotel and its Etalon restaurant.',
+      },
+      {
         name: 'StoriesOnBoard',
         company: 'DevMads',
         role: 'Full stack developer',

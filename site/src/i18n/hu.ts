@@ -173,6 +173,12 @@ const hu: SiteContent = {
         sentence: 'A 10XOne ERP meglévő funkcióinak karbantartása, valamint új funkciók kutatása és megvalósítása.',
       },
       {
+        name: 'Hotel Tiliana weboldal',
+        company: 'Szabadúszó',
+        role: 'Frontend fejlesztő',
+        sentence: 'Gyors, statikusan generált JAMstack weboldal egy budapesti wellness szállodának és Etalon éttermének.',
+      },
+      {
         name: 'StoriesOnBoard',
         company: 'DevMads',
         role: 'Full stack fejlesztő',

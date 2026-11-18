@@ -90,6 +90,7 @@ export const workMeta: { years: string; tags: string[]; /** product or company w
   { years: '2021–26', tags: ['Angular workspace', 'TypeScript', 'ThreeJS', 'Electron', 'Java Spring', 'SQLite', 'Cypress', 'Jest', 'Azure DevOps'], url: 'https://www.caredx.com/' },
   { years: '2020–21', tags: ['.NET Core 3.1', 'Azure', 'Angular 11', 'PWA', 'Revolut', 'Barion'], url: 'https://www.roksh.com/' },
   { years: '2019–20', tags: ['.NET Core 3.1', 'ASP.NET', 'WPF', 'SignalR', 'MSSQL', 'React'], url: 'https://10xone.hu/' },
+  { years: '2019', tags: ['React', 'Gatsby', 'JAMstack'], url: 'https://www.tiliana.hu/en/etalon' },
   { years: '2017–19', tags: ['TypeScript', 'KnockoutJS', 'C# / .NET', 'Azure', 'MSSQL'], url: 'https://storiesonboard.com/' },
   { years: '2015–16', tags: ['PHP', 'JavaScript', 'ASP.NET', 'T-SQL', 'Node.js', 'Google Maps', 'SendGrid', 'Xero'], url: 'https://framework.outlast.io/introduction/' },
   { years: '2013–15', tags: ['Symfony', 'ExtJS', 'Oracle PL/SQL', 'REST'], url: 'https://www.asystant.hu/' },
